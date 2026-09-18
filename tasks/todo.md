@@ -139,16 +139,16 @@
 
 ## Phase 2 — MobileSAM in the browser
 
-### T11: Pin the MobileSAM ONNX export — research only, no code
+### T11: Pin the MobileSAM ONNX export — research only, no code ✅
 
 **Description:** Identify the exact published encoder and decoder artifacts and record their **real** input/output tensor names, shapes, and dtypes, verified against the files themselves. Highest-risk unknown in the project, deliberately front-loaded (`/source-driven-development`).
 **Acceptance:**
 
-- [ ] Encoder and decoder URLs pinned to an explicit revision, not a branch
-- [ ] Actual tensor signature recorded in `docs/model-signature.md` — not assumed from memory or from a blog post
-- [ ] File sizes and available quantizations noted
-- [ ] CORS headers confirmed to permit browser fetch from our origin
-      **Verify:** `curl -I` each URL · inspect the ONNX graph and confirm the recorded signature
+- [x] Encoder and decoder URLs pinned to an explicit revision, not a branch (`0d3b403339b4674a82493d5e97964dd78089ddc8` on `Acly/MobileSAM`, MIT licensed)
+- [x] Actual tensor signature recorded in `docs/model-signature.md` — read directly from the ONNX graph (`onnx.load`), not assumed. **Found a real ambiguity the export script itself couldn't resolve**: it supports two mutually exclusive preprocessing conventions and the README didn't say which one this file used. Only the graph's actual input shape (`[image_height, image_width, 3]`, dynamic HWC) settled it — normalization, permute, and padding all happen *inside* the graph, so our JS only resizes the longest side to 1024
+- [x] File sizes and available quantizations noted (28.16 MiB encoder, 15.7 MiB decoder, fp32 only — no int8 variant exists in this repo, narrowing T16's question)
+- [x] CORS headers confirmed to permit browser fetch from our origin (verified via a real GET with `Origin` header following the redirect: `access-control-allow-origin: *`, `accept-ranges: bytes` on the final CDN response)
+      **Verify:** `curl -I` each URL · inspect the ONNX graph and confirm the recorded signature (done: both files downloaded, `onnx.load(..., load_external_data=False)` against each, every shape/dtype in `docs/model-signature.md` read from the graph itself). Also verified the point-coordinate scaling convention and label encoding against Meta's official SAM ONNX export script and notebook, since MobileSAM's decoder claims SAM-compatibility (ADR-0003) but that claim needed checking, not trusting
       **Dependencies:** None · **Scope:** S
       **Files:** `docs/model-signature.md`
 
