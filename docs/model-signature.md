@@ -160,6 +160,34 @@ automatically. T14 does not need to resize the output mask itself.
 mask back in) that SPEC does not call for in v1. T14 always passes `has_mask_input = 0`
 and an all-zero `[1,1,256,256]` `mask_input` tensor.
 
+## Bundle variant note (added at T13)
+
+`onnxruntime-web`'s default `ort.bundle.min.mjs` import resolved to the **jsep** WASM
+build (`ort-wasm-simd-threaded.jsep.wasm`, 28.3 MB) rather than the plain CPU build
+(`ort-wasm-simd-threaded.wasm`, 14.2 MB) — jsep adds WebGPU/WebNN support neither this
+project nor MobileSAM's CPU-oriented distillation needs. This roughly doubles the WASM
+runtime's download size on top of the ~44 MB of model weights. Flagged as a T16
+performance-checkpoint input: selecting the plain `wasm` build (via the `onnxruntime-web/wasm`
+entry point, per its package.json `exports`) instead of the default bundle is the likely
+fix, to be measured rather than assumed.
+
+## End-to-end verification against the real model (added at T12)
+
+The preprocessing math in `src/lib/sam/preprocess.ts` was smoke-tested against the actual
+downloaded artifacts with `onnxruntime` (Python), not just checked against graph metadata:
+
+- **Encoder**: a 1600×1200 source resized with `encoderInputSize` (→ 1024×768) and fed as
+  raw HWC float32 produced `image_embeddings` at exactly `(1, 256, 64, 64)` — the
+  documented shape, confirmed by actually running the model, not just reading its graph.
+- **Decoder**: one foreground point plus a box encoded as two extra points with labels
+  `2`/`3` (both scaled through the same `toModelSpace` transform) ran without a shape
+  error and returned `masks` at `(1, 1, 1200, 1600)` — `orig_im_size` upscaling confirmed
+  working, and the single-channel output confirms `sam_mask_decoder_single.onnx` returns
+  exactly one mask per call, as its name claims.
+
+Both confirm the documented signature above is not just structurally correct but actually
+usable end-to-end with the exact preprocessing this project implements.
+
 ## Sources
 
 - [Acly/MobileSAM](https://huggingface.co/Acly/MobileSAM) — model repository, license, file listing

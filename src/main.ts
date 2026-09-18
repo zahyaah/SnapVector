@@ -53,3 +53,49 @@ if (stagePanel && stageEl) {
     strokeOverlay.setDebugPrompt(debugEnabled ? latestPrompt : null);
   });
 }
+
+const modelStatus = document.querySelector<HTMLElement>('#model-status');
+
+function formatProgress(loadedBytes: number, totalBytes: number | null): string {
+  const mb = (bytes: number): string => (bytes / (1024 * 1024)).toFixed(1);
+  return totalBytes === null
+    ? `${mb(loadedBytes)} MB loaded`
+    : `${mb(loadedBytes)} / ${mb(totalBytes)} MB (${String(Math.round((loadedBytes / totalBytes) * 100))}%)`;
+}
+
+// Dynamically imported so onnxruntime-web's WASM runtime sits in its own chunk, outside
+// the initial bundle everything else needs (SPEC's performance budget targets that
+// initial chunk, not the model). Triggered after first paint, never blocking it — see
+// T15 for wiring this to the actual draw-a-loop flow; this is load/progress/cache/error
+// verification only.
+async function loadSamModel(): Promise<void> {
+  if (!modelStatus) return;
+  const { createSamSession } = await import('./lib/sam/session.js');
+
+  modelStatus.dataset.tone = 'idle';
+  modelStatus.textContent = 'Loading segmentation model…';
+
+  const result = await createSamSession({
+    onProgress: (stage, progress) => {
+      modelStatus.textContent = `Loading ${stage}: ${formatProgress(progress.loadedBytes, progress.totalBytes)}`;
+    },
+  });
+
+  if (!result.ok) {
+    modelStatus.dataset.tone = 'error';
+    modelStatus.textContent = '';
+    const message = document.createElement('span');
+    message.textContent = 'Could not load the segmentation model. ';
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.textContent = 'Retry';
+    retry.addEventListener('click', () => void loadSamModel());
+    modelStatus.append(message, retry);
+    return;
+  }
+
+  modelStatus.dataset.tone = 'idle';
+  modelStatus.textContent = 'Segmentation model ready.';
+}
+
+void loadSamModel();

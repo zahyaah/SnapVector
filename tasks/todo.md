@@ -152,29 +152,32 @@
       **Dependencies:** None · **Scope:** S
       **Files:** `docs/model-signature.md`
 
-### T12: Image preprocessing and coordinate mapping — TDD
+### T12: Image preprocessing and coordinate mapping — TDD ✅
 
 **Description:** Source image → letterboxed 1024×1024 normalized NCHW tensor, plus the forward and inverse coordinate transforms. **Tests written first** — the inverse transform is where an off-by-one silently misplaces every prompt point.
+
+**Scope turned out smaller than planned**: T11 found normalization, channel-permute, and padding all happen *inside* the ONNX graph, not in JS (see `docs/model-signature.md`). This module only resizes the longest edge to 1024 (HWC, raw 0-255, no normalize) and provides the coordinate scale transform — a pure scale with **no offset term**, since the graph pads bottom-right rather than centering.
 **Acceptance:**
 
-- [ ] `imageToTensor` produces the exact shape and normalization the T11 signature specifies
-- [ ] `toModelSpace` / `toImageSpace` round-trip within 0.5px for portrait, landscape, and square inputs
-- [ ] Letterbox padding is correct for extreme aspect ratios (10:1, 1:10)
-      **Verify:** `npx vitest run src/lib/sam/preprocess.test.ts` · round-trip property test over random points and sizes
+- [x] `imageToTensor` produces the exact shape and normalization the T11 signature specifies (renamed `pixelsToEncoderTensor` — produces raw un-normalized HWC float32, matching the graph's expectation exactly)
+- [x] `toModelSpace` / `toImageSpace` round-trip within 0.5px for portrait, landscape, and square inputs (plus a 200-sample property test)
+- [x] Letterbox padding is correct for extreme aspect ratios (10:1, 1:10) (verified: short edge never collapses to 0; no offset needed since padding isn't centered)
+- [x] **Smoke-tested against the real downloaded model** (not just unit tests): fed `encoderInputSize`'s output through the actual encoder.onnx via Python onnxruntime, got exactly the documented `(1,256,64,64)` embedding shape; fed a box-encoded prompt through the real decoder.onnx and got a correctly-upscaled `(1,1,1200,1600)` mask
+      **Verify:** `npx vitest run src/lib/sam/preprocess.test.ts` · round-trip property test over random points and sizes · real-model smoke test via Python onnxruntime (see `docs/model-signature.md`)
       **Dependencies:** T11 · **Scope:** S
       **Files:** `src/lib/sam/preprocess.ts`, `src/lib/sam/preprocess.test.ts`
 
-### T13: ONNX session, CDN fetch, and Cache API persistence
+### T13: ONNX session, CDN fetch, and Cache API persistence ✅
 
 **Description:** Lazy ORT Web session creation, weights fetched from the pinned CDN URLs with determinate progress, persisted in the Cache API. Failure is a typed result, not a throw.
 **Acceptance:**
 
-- [ ] Model load starts after first paint and never blocks it
-- [ ] Progress is determinate, read from `Content-Length` via a streamed body
-- [ ] Second load resolves from the Cache API with no network request
-- [ ] Fetch failure returns a typed error the UI can act on; the app stays usable without the model
-- [ ] `lib/sam/` is dynamically imported so ORT sits outside the initial chunk
-      **Verify:** `npm run build && npm run preview` — **not dev-server only**, per the plan's ORT asset-path risk · DevTools: throttle to Fast 3G, confirm progress; reload, confirm cache hit; block the CDN, confirm the error path
+- [x] Model load starts after first paint and never blocks it (verified: file input usable and interactive immediately at DOMContentLoaded, before the model reaches "ready")
+- [x] Progress is determinate, read from `Content-Length` via a streamed body (verified under CDP-throttled network: real byte counts, e.g. `"Loading encoder: 0.0 / 26.9 MB (0%)"`, not a spinner)
+- [x] Second load resolves from the Cache API with no network request (verified: reload after a cold load reached "ready" in 669ms with **zero** network requests for model files)
+- [x] Fetch failure returns a typed error the UI can act on; the app stays usable without the model (verified: CDN blocked → clean error + Retry button, stage stays fully interactive; verified Retry actually recovers once the network returns)
+- [x] `lib/sam/` is dynamically imported so ORT sits outside the initial chunk (verified in the real build: `index-*.js` is 5.30 kB gzipped, ORT's runtime lives entirely in a separate `session-*.js` chunk, 109.64 kB gzipped, loaded only on demand)
+      **Verify:** `npm run build && npm run preview` — **not dev-server only**, per the plan's ORT asset-path risk · DevTools: throttle to Fast 3G, confirm progress; reload, confirm cache hit; block the CDN, confirm the error path. **All verified against the real production build with Playwright, including a full real-network cold load that actually constructed both `InferenceSession`s from the real ~44 MB of downloaded weights** — not mocked. One genuine risk from the plan's register materialized and resolved cleanly: Vite's static analysis of `ort.bundle.min.mjs`'s minified `import.meta.url`-relative WASM reference was uncertain from documentation alone (conflicting reports online, including a reverted upstream fix attempt) — building and serving the real bundle settled it: Vite correctly detected and hashed the WASM asset (`ort-wasm-simd-threaded.jsep-*.wasm`, 200 on load, zero 404s)
       **Dependencies:** T11 · **Scope:** M
       **Files:** `src/lib/sam/session.ts`, `src/lib/sam/session.test.ts`, `vite.config.ts`
 

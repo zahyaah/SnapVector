@@ -365,3 +365,33 @@ body {
   color: var(--color-accent);
   text-decoration-color: currentColor;
 }
+
+.model-status {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.model-status:empty {
+  display: none;
+}
+
+.model-status[data-tone='error'] {
+  color: var(--color-danger);
+  background: var(--color-danger-subtle);
+}
+
+.model-status button {
+  margin-left: var(--space-sm);
+  padding: 2px var(--space-sm);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
