@@ -23,8 +23,11 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ['eslint.config.js'],
+    // Config and tooling scripts sit outside tsconfig's project, so typed rules have no
+    // type information for them and would fail to parse rather than lint.
+    files: ['eslint.config.js', 'scripts/**/*.mjs'],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: globals.node },
+    rules: { 'no-console': 'off' },
   },
 );

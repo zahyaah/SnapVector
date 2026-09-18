@@ -71,9 +71,6 @@ This map matches the four delivery phases in the brief:
 | Browser tests | Chrome DevTools MCP, manual per phase                                         | —                 |
 | Hosting       | GitHub Pages (static)                                                         | —                 |
 
-Vitest is held at 3.x because vitest 4 and 5 crash npm 10.9.2's peer resolver
-(`edgesOut` of null). Move to vitest 5 once the toolchain is on a current Node/npm.
-
 No runtime dependencies beyond `onnxruntime-web`. No CSS framework — plain CSS with
 custom properties.
 
