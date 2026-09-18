@@ -32,15 +32,15 @@
       **Dependencies:** T1 · **Scope:** M
       **Files:** `src/styles/tokens.css`, `src/ui/theme.ts`, `src/ui/theme.test.ts`, `index.html`
 
-### T3: App layout shell
+### T3: App layout shell ✅
 
 **Description:** Header, stage region, controls, and result panel placeholder. Responsive from 360px up. Semantic landmarks throughout.
 **Acceptance:**
 
-- [ ] Layout holds at 360px, 768px, and 1440px with no horizontal scroll
-- [ ] `header`/`main`/`aside` landmarks present; heading order is sequential
-- [ ] Generous whitespace, no shadows or gradients (SPEC §1, `/minimalist-ui`)
-      **Verify:** `npm run check` · browser at three widths · axe scan reports no violations
+- [x] Layout holds at 360px, 768px, and 1440px with no horizontal scroll (verified: `npm run a11y` — overflow=0 at all three widths, both themes)
+- [x] `header`/`main`/`aside` landmarks present; heading order is sequential (verified: h1 → h2 → h2)
+- [x] Generous whitespace, no shadows or gradients (SPEC §1, `/minimalist-ui`)
+  **Verify:** `npm run check` · browser at three widths · axe scan reports no violations
       **Dependencies:** T2 · **Scope:** M
       **Files:** `index.html`, `src/styles/app.css`, `src/main.ts`
 

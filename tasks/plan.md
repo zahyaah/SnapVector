@@ -69,12 +69,12 @@ with no code attached, so it fails cheaply if it fails.
 
 ## Checkpoints
 
-| After | Gate |
-|---|---|
-| T10 | Phase 1: `npm run check` clean, loop→prompt verified in browser, design pass done, `docs/phase-01.md` written. **Human review.** |
-| T17 | Phase 2: mask preview works in browser, performance budget met or consciously renegotiated, `docs/phase-02.md` written. **Human review.** |
-| T27 | Phase 3: full pipeline produces a downloadable SVG that opens in Inkscape/Figma, `docs/phase-03.md` written. **Human review.** |
-| T33 | Complete: every Success Criterion in SPEC §9 demonstrably met, deployed, `docs/phase-04.md` written. |
+| After | Gate                                                                                                                                      |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| T10   | Phase 1: `npm run check` clean, loop→prompt verified in browser, design pass done, `docs/phase-01.md` written. **Human review.**          |
+| T17   | Phase 2: mask preview works in browser, performance budget met or consciously renegotiated, `docs/phase-02.md` written. **Human review.** |
+| T27   | Phase 3: full pipeline produces a downloadable SVG that opens in Inkscape/Figma, `docs/phase-03.md` written. **Human review.**            |
+| T33   | Complete: every Success Criterion in SPEC §9 demonstrably met, deployed, `docs/phase-04.md` written.                                      |
 
 ## Parallelization
 
@@ -84,18 +84,18 @@ with no code attached, so it fails cheaply if it fails.
 
 ## Risks and Mitigations
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| MobileSAM ONNX export's tensor names/shapes differ from what we assume | **High** — invalidates T12/T14 | T11 is a research-only task that inspects the real artifact and records the actual signature before any code is written against it (`/source-driven-development`) |
-| ORT Web's WASM asset paths break under a Vite production build (common failure; works in dev, 404s when built) | **High** — ships broken | T13's verification runs against `npm run build && npm run preview`, never dev-server-only. Configure asset paths explicitly rather than relying on defaults |
-| Encoder blocks the main thread and freezes the UI for seconds | Medium | Measure at T16; move the session to a Web Worker if jank is visible. `lib/sam/` is already isolated behind an async interface so this does not ripple |
-| Model download too slow to meet the Fast 3G target | Medium | T16 decides quantization against measurements; int8 encoder is the lever |
-| Marching squares saddle-point ambiguity produces self-touching contours | Medium | Named explicitly as a T20 fixture case, tested before it is a bug |
-| Bezier fit quality is visibly poor on real masks | Medium | Error-bounded fit with recursive subdivision; tolerance is a tunable constant. Polyline output is the degraded fallback |
-| ORT Web blows the 150 KB bundle budget | Medium | Dynamic-import `lib/sam/` so it is a separate chunk outside the initial bundle; audited at T16 |
-| Hugging Face CDN unreachable on a visitor's first load | Medium | Retry UI (T28); app stays usable for everything not needing the model |
-| Cache API eviction causes surprise re-download | Low | Accepted. Invisible apart from the progress indicator |
-| Hand-written vectorization takes longer than budgeted | Low | Contained: `path.ts` is an interface, and `vtracer-wasm` remains available behind it if the estimate proves wrong |
+| Risk                                                                                                           | Impact                         | Mitigation                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MobileSAM ONNX export's tensor names/shapes differ from what we assume                                         | **High** — invalidates T12/T14 | T11 is a research-only task that inspects the real artifact and records the actual signature before any code is written against it (`/source-driven-development`) |
+| ORT Web's WASM asset paths break under a Vite production build (common failure; works in dev, 404s when built) | **High** — ships broken        | T13's verification runs against `npm run build && npm run preview`, never dev-server-only. Configure asset paths explicitly rather than relying on defaults       |
+| Encoder blocks the main thread and freezes the UI for seconds                                                  | Medium                         | Measure at T16; move the session to a Web Worker if jank is visible. `lib/sam/` is already isolated behind an async interface so this does not ripple             |
+| Model download too slow to meet the Fast 3G target                                                             | Medium                         | T16 decides quantization against measurements; int8 encoder is the lever                                                                                          |
+| Marching squares saddle-point ambiguity produces self-touching contours                                        | Medium                         | Named explicitly as a T20 fixture case, tested before it is a bug                                                                                                 |
+| Bezier fit quality is visibly poor on real masks                                                               | Medium                         | Error-bounded fit with recursive subdivision; tolerance is a tunable constant. Polyline output is the degraded fallback                                           |
+| ORT Web blows the 150 KB bundle budget                                                                         | Medium                         | Dynamic-import `lib/sam/` so it is a separate chunk outside the initial bundle; audited at T16                                                                    |
+| Hugging Face CDN unreachable on a visitor's first load                                                         | Medium                         | Retry UI (T28); app stays usable for everything not needing the model                                                                                             |
+| Cache API eviction causes surprise re-download                                                                 | Low                            | Accepted. Invisible apart from the progress indicator                                                                                                             |
+| Hand-written vectorization takes longer than budgeted                                                          | Low                            | Contained: `path.ts` is an interface, and `vtracer-wasm` remains available behind it if the estimate proves wrong                                                 |
 
 ## Open Questions
 

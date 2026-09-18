@@ -1,2 +1,5 @@
 dist/
 coverage/
+tasks/
+docs/
+SPEC.md

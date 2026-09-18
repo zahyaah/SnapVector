@@ -100,3 +100,122 @@ body {
   padding: var(--space-xl) var(--space-lg);
   padding-bottom: calc(var(--space-xl) + env(safe-area-inset-bottom, 0px));
 }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.intro {
+  max-width: 52ch;
+  margin-bottom: var(--space-2xl);
+}
+
+.intro__title {
+  margin: 0 0 var(--space-xs);
+  font-size: clamp(var(--text-xl), 1.1rem + 2vw, 2.5rem);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.intro__lede {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+  text-wrap: pretty;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+/* Below this width the result panel beside a canvas leaves neither enough room, so the
+   two stack and the canvas takes the full column. */
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stage {
+    min-height: 15rem;
+  }
+}
+
+.panel {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: var(--space-lg);
+}
+
+.panel__heading {
+  margin: 0 0 var(--space-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 560;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stage {
+  display: grid;
+  place-items: center;
+  min-height: 22rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.stage[data-state='empty'] {
+  border: 1px dashed var(--color-border-strong);
+  background: transparent;
+}
+
+.dropzone {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+}
+
+.dropzone__icon {
+  width: 34px;
+  height: 34px;
+  margin-bottom: var(--space-xs);
+  color: var(--color-text-muted);
+}
+
+.dropzone__text {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 560;
+}
+
+.dropzone__hint,
+.empty-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.result-panel__body {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--color-border-strong);
+  text-align: center;
+}

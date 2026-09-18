@@ -73,6 +73,48 @@
       </button>
     </header>
 
-    <main id="app" class="app"></main>
+    <main id="app" class="app">
+      <div class="intro">
+        <h1 class="intro__title">Rough loop in, clean SVG out.</h1>
+        <p class="intro__lede">
+          Draw a rough loop around anything in an image and get back a clean vector cutout.
+          Everything runs in your browser — your image is never uploaded.
+        </p>
+      </div>
+
+      <div class="workspace">
+        <section class="panel stage-panel" aria-labelledby="stage-heading">
+          <h2 id="stage-heading" class="panel__heading">Source image</h2>
+
+          <div class="stage" data-state="empty">
+            <div class="dropzone">
+              <svg class="dropzone__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M3.5 16.5V5.8A2.3 2.3 0 0 1 5.8 3.5h12.4a2.3 2.3 0 0 1 2.3 2.3v12.4a2.3 2.3 0 0 1-2.3 2.3H5.8a2.3 2.3 0 0 1-2.3-2.3Z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <path
+                  d="m3.9 16.2 4.3-4.3a1.8 1.8 0 0 1 2.5 0l3.4 3.4m0 0 1.6-1.6a1.8 1.8 0 0 1 2.5 0l2 2m-6.1-.4 2.4 2.4"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+                <circle cx="15.2" cy="8.6" r="1.5" fill="currentColor" />
+              </svg>
+              <p class="dropzone__text">Drop an image here, or browse</p>
+              <p class="dropzone__hint">PNG, JPEG or WebP</p>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel result-panel" aria-labelledby="result-heading">
+          <h2 id="result-heading" class="panel__heading">Result</h2>
+          <div class="result-panel__body">
+            <p class="empty-note">Your SVG cutout will appear here once you draw a loop.</p>
+          </div>
+        </aside>
+      </div>
+    </main>
   </body>
 </html>
