@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>SnapVector — rough loop in, clean SVG out</title>
+    <title>SnapVector. Rough loop in, clean SVG out.</title>
     <meta
       name="description"
-      content="Draw a rough loop around anything in an image and get a clean SVG cutout. Runs entirely in your browser — your image never leaves your device."
+      content="Draw a rough loop around anything in an image and get a clean SVG cutout. Runs entirely in your browser, so your image never leaves your device."
     />
 
     <!-- Runs before first paint so a stored override is applied without a flash of the
@@ -78,7 +78,7 @@
         <h1 class="intro__title">Rough loop in, clean SVG out.</h1>
         <p class="intro__lede">
           Draw a rough loop around anything in an image and get back a clean vector cutout.
-          Everything runs in your browser — your image is never uploaded.
+          Everything runs in your browser, so your image is never uploaded.
         </p>
       </div>
 
@@ -87,7 +87,7 @@
           <h2 id="stage-heading" class="panel__heading">Source image</h2>
 
           <div class="stage" data-state="empty">
-            <div class="dropzone">
+            <label class="dropzone" for="file-input">
               <svg class="dropzone__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M3.5 16.5V5.8A2.3 2.3 0 0 1 5.8 3.5h12.4a2.3 2.3 0 0 1 2.3 2.3v12.4a2.3 2.3 0 0 1-2.3 2.3H5.8a2.3 2.3 0 0 1-2.3-2.3Z"
@@ -102,9 +102,41 @@
                 />
                 <circle cx="15.2" cy="8.6" r="1.5" fill="currentColor" />
               </svg>
-              <p class="dropzone__text">Drop an image here, or browse</p>
-              <p class="dropzone__hint">PNG, JPEG or WebP</p>
+              <span class="dropzone__text">Drop an image here, or browse</span>
+              <span class="dropzone__hint">PNG, JPEG or WebP · or paste from clipboard</span>
+              <input
+                id="file-input"
+                class="sr-only"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+              />
+            </label>
+
+            <div class="stage__layers" hidden>
+              <canvas class="stage__canvas stage__canvas--source"></canvas>
+              <canvas class="stage__canvas stage__canvas--overlay"></canvas>
             </div>
+          </div>
+
+          <div class="stage-status" role="status" aria-live="polite"></div>
+
+          <div class="stage-toolbar" hidden>
+            <button type="button" class="pen-swatch" aria-label="Change pen colour">
+              <span class="pen-swatch__dot"></span>
+            </button>
+            <button type="button" class="toolbar-button stage-undo">Undo</button>
+            <button type="button" class="toolbar-button stage-loop-clear">Clear loop</button>
+            <button type="button" class="toolbar-button stage-clear">
+              Choose a different image
+            </button>
+            <button
+              type="button"
+              class="debug-toggle"
+              aria-pressed="false"
+              title="Show the internal SAM prompt derived from your loop"
+            >
+              Prompt debug
+            </button>
           </div>
         </section>
 

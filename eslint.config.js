@@ -16,6 +16,13 @@ export default tseslint.config(
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       '@typescript-eslint/explicit-module-boundary-types': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
+      // noUncheckedIndexedAccess (tsconfig) makes every array index read T | undefined,
+      // including loop-bounded reads like arr[i] or arr[(i + 1) % arr.length] whose
+      // safety comes from the loop invariant, not the type system. The geometry and
+      // vectorization modules index arrays this way throughout, so a bare `!` there is
+      // the idiom, not a smell — the alternative is a `mustGet` helper wrapping the same
+      // assertion with no added safety.
+      '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
   {

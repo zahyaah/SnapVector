@@ -44,92 +44,94 @@
       **Dependencies:** T2 · **Scope:** M
       **Files:** `index.html`, `src/styles/app.css`, `src/main.ts`
 
-### T4: Two-canvas stage and image loading
+### T4: Two-canvas stage and image loading ✅
 
 **Description:** Source-image canvas and a transparent overlay canvas, exactly aligned, DPR-aware. Load images via file input, drag-and-drop, and paste.
 **Acceptance:**
 
-- [ ] Two separate canvas elements; the overlay is never drawn into the source canvas (SPEC §8 Always)
-- [ ] PNG, JPEG, and WebP load and render fit-to-stage, longest side capped at 2048
-- [ ] Both canvases scale with `devicePixelRatio`; the loop coordinates map back to source-image pixels correctly
-- [ ] Non-image or corrupt files produce a visible, actionable error
+- [x] Two separate canvas elements; the overlay is never drawn into the source canvas (SPEC §8 Always) — enforced structurally: the source canvas is detached and has no reference passed to the overlay
+- [x] PNG, JPEG, and WebP load and render fit-to-stage, longest side capped at 2048 (verified: 4000×2500 fixture backing store is 1500×938 at DPR2, not the raw dimensions; unit-tested exhaustively in viewport.test.ts)
+- [x] Both canvases scale with `devicePixelRatio`; the loop coordinates map back to source-image pixels correctly (verified: overlay and source canvas bounding boxes match exactly; clientToSourcePoint unit-tested for corners, centre, and off-canvas drags)
+- [x] Non-image or corrupt files produce a visible, actionable error (verified: renamed .txt→.png shows "could not be read... corrupt or renamed", stage stays in `data-state="empty"`)
       **Verify:** `npm run check` · browser: all three input paths, a portrait image, a landscape image, a 4000px image, a `.txt` renamed to `.png`
       **Dependencies:** T3 · **Scope:** M
       **Files:** `src/ui/stage.ts`, `src/ui/controls.ts`, `src/ui/stage.test.ts`, `src/styles/app.css`
 
-### T5: Polygon geometry primitives — TDD
+### T5: Polygon geometry primitives — TDD ✅
 
 **Description:** Pure polygon operations with no DOM dependency. **Tests written first.**
 **Acceptance:**
 
-- [ ] `boundingBox`, `signedArea`, `polygonCentroid`, `containsPoint`, `poleOfInaccessibility`
-- [ ] Degenerate inputs covered: empty, single point, two points, all-collinear, self-intersecting
-- [ ] `containsPoint` correct for concave polygons and for points exactly on an edge
-      **Verify:** `npx vitest run src/lib/geometry/loop.test.ts` · 100% branch coverage on this module
+- [x] `boundingBox`, `signedArea`, `polygonCentroid`, `containsPoint`, `poleOfInaccessibility`
+- [x] Degenerate inputs covered: empty, single point, two points, all-collinear, self-intersecting (+ coincident vertices, zero-length edges)
+- [x] `containsPoint` correct for concave polygons and for points exactly on an edge (verified against a C-shape fixture; centroid deliberately falls outside it)
+      **Verify:** `npx vitest run src/lib/geometry/loop.test.ts` · 100% branch coverage on this module (confirmed: loop.ts drops out of the coverage report entirely once every branch is hit)
       **Dependencies:** T1 · **Scope:** S
       **Files:** `src/lib/geometry/loop.ts`, `src/lib/geometry/loop.test.ts`, `src/lib/geometry/types.ts`
 
-### T6: Loop → SAM prompt conversion — TDD
+### T6: Loop → SAM prompt conversion — TDD ✅
 
 **Description:** Turn a hand-drawn loop into a SAM prompt: bounding box, a foreground anchor, spread interior points, one background point. **Tests written first.** This is the module SPEC §7 names first for a reason — a prompt point landing outside the shape silently ruins the mask.
 **Acceptance:**
 
-- [ ] Every returned foreground point is inside the polygon, verified for concave and C-shaped loops where the centroid falls outside
-- [ ] Returns a bbox and at least 3 points for any non-degenerate loop
-- [ ] The background point is outside the loop but inside the image bounds
-- [ ] Loops extending past the canvas edge are clamped, not rejected
-      **Verify:** `npx vitest run src/lib/geometry/prompt.test.ts` · property test: 500 random loops, no foreground point ever outside
+- [x] Every returned foreground point is inside the polygon, verified for concave and C-shaped loops where the centroid falls outside
+- [x] Returns a bbox and at least 3 points for any non-degenerate loop (enforced: interior sample count is floored at 2 regardless of what the caller requests)
+- [x] The background point is outside the loop but inside the image bounds (returns `null` rather than fabricating one when the loop fills the image — verified explicitly)
+- [x] Loops extending past the canvas edge are clamped, not rejected (verified both near-edge and far-edge overhangs)
+      **Verify:** `npx vitest run src/lib/geometry/prompt.test.ts` · property test: 500 random loops, no foreground point ever outside (all 16 tests pass, including a targeted case proving the corner-sampling fallback fires correctly on an extreme concave shape)
       **Dependencies:** T5 · **Scope:** S
       **Files:** `src/lib/geometry/prompt.ts`, `src/lib/geometry/prompt.test.ts`
 
-### T7: Freehand stroke overlay with halo and palette
+### T7: Freehand stroke overlay with halo and palette ✅
 
 **Description:** Pointer capture on the overlay canvas producing a closed loop, rendered as a coloured line with a contrasting halo. Five-hue pen palette; halo inverts with theme.
 **Acceptance:**
 
-- [ ] Stroke is legible over pure white, pure black, and mid-grey image regions in both themes
-- [ ] Halo is dark in light mode and light in dark mode; palette cycles 5 hues
-- [ ] Loop auto-closes on pointer release; clear and undo available
-- [ ] Nothing is ever drawn into the source canvas
-      **Verify:** `npm run check` · browser: draw over a black/white/grey test image in both themes, all 5 hues
+- [x] Stroke is legible over pure white, pure black, and mid-grey image regions in both themes — **caught and fixed a real gap**: the halo only contrasts one extreme at a time (dark halo vs. white, light halo vs. black), so on the *other* extreme the pen hue alone must carry contrast. Computing WCAG contrast ratios found the original amber (#f4a300) at only 2.08:1 against white — invisible in dark mode over a bright region. Replaced with a burnt sienna (#b5651d, 4.84/4.34), and every hue now has a permanent regression test enforcing ≥3:1 against both pure black and pure white
+- [x] Halo is dark in light mode and light in dark mode; palette cycles 5 hues (verified: 6 clicks sample 5 distinct colours then wrap to the first)
+- [x] Loop auto-closes on pointer release; clear and undo available (verified: a <3-point stray click leaves no mark; Clear loop empties the canvas)
+- [x] Nothing is ever drawn into the source canvas (structural: the overlay only ever holds a reference to `stage.overlayCanvas`, never the source canvas)
+      **Verify:** `npm run check` · browser: draw over a black/white/grey test image in both themes, all 5 hues (all pass; contrast gap found and fixed — see above)
       **Dependencies:** T4, T5 · **Scope:** M
       **Files:** `src/ui/stroke-overlay.ts`, `src/ui/stroke-overlay.test.ts`, `src/styles/app.css`
 
-### T8: Wire loop completion to prompt, with debug visualization
+### T8: Wire loop completion to prompt, with debug visualization ✅
 
 **Description:** On loop close, derive the SAM prompt and draw the bbox and points on the overlay behind a debug flag. **This is the Phase 1 end-to-end proof** — the full input path works before any model exists.
 **Acceptance:**
 
-- [ ] Closing a loop renders its bbox and prompt points in the correct positions
-- [ ] Points visibly sit inside the drawn loop, including for a deliberately C-shaped loop
-- [ ] Debug overlay is off by default and toggleable
-      **Verify:** `npm run check` · browser: draw a blob, a C-shape, and a loop crossing the image edge
+- [x] Closing a loop renders its bbox and prompt points in the correct positions (verified with screenshots, not just pixel-count assertions)
+- [x] Points visibly sit inside the drawn loop, including for a deliberately C-shaped loop (screenshot: all 3 foreground points land in the shape's solid arms, none in the open notch)
+- [x] Debug overlay is off by default and toggleable (verified: 0 debug pixels before toggling, appear after, persist across a redraw while still on, vanish on toggle-off without erasing the loop itself)
+      **Verify:** `npm run check` · browser: draw a blob, a C-shape, and a loop crossing the image edge (all verified — the edge-crossing case additionally shows the debug bbox visibly clamp at the canvas boundary, confirming T6's clamping logic end-to-end, not just in isolation)
       **Dependencies:** T6, T7 · **Scope:** S
       **Files:** `src/main.ts`, `src/ui/stroke-overlay.ts`
 
-### T9: Phase 1 design pass
+### T9: Phase 1 design pass ✅
 
-**Description:** Apply `/minimalist-ui` and `/design-taste-frontend` to the shell. Nothing that reads as a templated AI layout.
+**Description:** Apply `/minimalist-ui` and `/design-taste-frontend` to the shell. Nothing that reads as a templated AI layout. Both skills target marketing/landing pages more than a canvas tool; applied selectively (contrast/consistency/copy hygiene, not heroes or bento grids) rather than mechanically.
 **Acceptance:**
 
-- [ ] Type scale, spacing rhythm, and colour use are consistent and deliberate in both themes
-- [ ] Focus states are visible and styled, not browser defaults
-- [ ] No decorative shadow or gradient survives
-      **Verify:** browser at three widths, both themes · keyboard-only tab through every control
+- [x] Type scale, spacing rhythm, and colour use are consistent and deliberate in both themes (balanced panel heights so the empty Result panel no longer looks orphaned next to a loaded Source panel; toned down the debug toggle to a quiet text link so it doesn't compete with real controls)
+- [x] Focus states are visible and styled, not browser defaults (custom `:focus-visible` ring, verified via keyboard tab order across all 6 toolbar controls)
+- [x] No decorative shadow or gradient survives
+- [x] **Found and fixed a real bug during this pass**: `.stage-toolbar { display: flex }` silently defeated the `hidden` attribute via equal-specificity/source-order, so the toolbar was visible before any image loaded. Fixed with a defensive `[hidden] { display: none !important; }` reset, verified `true` in a fresh session. Also removed dead duplicate CSS from an earlier phase and fixed a narrow-viewport wrap where a toolbar button floated oddly right-aligned on its own row
+- [x] Em-dash audit: 4 instances in user-visible copy (title, meta description, hero lede, error message) replaced with plain punctuation, per `/design-taste-frontend`'s copy hygiene rules
+      **Verify:** browser at three widths, both themes · keyboard-only tab through every control (tab order: theme → pen swatch → undo → clear loop → choose image → debug toggle, all reachable) · `npm run a11y` clean at all 6 configurations after every change
       **Dependencies:** T8 · **Scope:** M
       **Files:** `src/styles/tokens.css`, `src/styles/app.css`
 
-### ✅ Checkpoint: Phase 1
+### ✅ Checkpoint: Phase 1 — COMPLETE
 
-- [ ] `npm run check` clean; `npm run build` succeeds
-- [ ] Browser-verified via `/browser-testing-with-devtools`: upload → draw → prompt points render
-- [ ] `docs/phase-01.md` written (what was built, decisions, trade-offs)
+- [x] `npm run check` clean; `npm run build` succeeds (11.26 kB JS / 4.47 kB gzipped)
+- [x] Browser-verified via Playwright (`chrome-devtools` MCP not configured in this session): upload → draw → prompt points render, 0 console errors end to end
+- [x] `docs/phase-01.md` written (what was built, decisions, trade-offs)
 - [ ] **Human review before Phase 2**
 
-### T10: Phase 1 documentation
+### T10: Phase 1 documentation ✅
 
 **Description:** `docs/phase-01.md` per `/documentation-and-adrs`.
-**Acceptance:** [ ] Covers what shipped, decisions made during the phase, and what was deferred
+**Acceptance:** [x] Covers what shipped, decisions made during the phase, and what was deferred
 **Verify:** reads correctly against the actual diff · **Dependencies:** T9 · **Scope:** S
 **Files:** `docs/phase-01.md`
 

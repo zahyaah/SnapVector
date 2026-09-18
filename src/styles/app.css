@@ -4,6 +4,14 @@
   box-sizing: border-box;
 }
 
+/* An authored `display` rule on an element (e.g. `.stage-toolbar { display: flex }`) has
+   the same specificity as the browser's default `[hidden] { display: none }` and can
+   silently win by source order, defeating `hidden` entirely. This reset guarantees the
+   attribute always works, on any element, regardless of what else targets it. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -137,7 +145,6 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: var(--space-xl);
-  align-items: start;
 }
 
 /* Below this width the result panel beside a canvas leaves neither enough room, so the
@@ -210,12 +217,151 @@ body {
   font-size: var(--text-sm);
 }
 
+.result-panel {
+  display: flex;
+  flex-direction: column;
+}
+
 .result-panel__body {
   display: grid;
   place-items: center;
+  flex: 1;
   min-height: 12rem;
   padding: var(--space-md);
   border-radius: var(--radius-md);
   border: 1px dashed var(--color-border-strong);
   text-align: center;
+}
+
+.stage {
+  position: relative;
+}
+
+.dropzone {
+  display: grid;
+  cursor: pointer;
+}
+
+.stage[data-state='loaded'] .dropzone {
+  display: none;
+}
+
+.stage[data-dragging='true'] .dropzone {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.stage__layers {
+  position: relative;
+  margin: 0 auto;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-sunken);
+}
+
+.stage__canvas {
+  display: block;
+}
+
+.stage__canvas--overlay {
+  position: absolute;
+  inset: 0;
+  /* The overlay only ever receives pointer input for drawing (wired at T7). Until then it
+     must not swallow clicks meant for the page underneath it. */
+  touch-action: none;
+}
+
+.stage-status {
+  min-height: 1.25em;
+  margin-top: var(--space-xs);
+  font-size: var(--text-sm);
+}
+
+.stage-status[data-tone='error'] {
+  color: var(--color-danger);
+}
+
+.stage-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.toolbar-button {
+  padding: var(--space-xs) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.toolbar-button:hover {
+  border-color: var(--color-border-strong);
+}
+
+.stage-clear {
+  margin-left: auto;
+}
+
+/* The auto-margin grouping (drawing controls left, image/debug controls right) assumes
+   enough width for two clusters on one row. Below that it just produces an oddly
+   right-floated button on its own wrapped line, so the toolbar falls back to a plain
+   left-aligned wrap instead. */
+@media (max-width: 480px) {
+  .stage-clear {
+    margin-left: 0;
+  }
+}
+
+.pen-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.pen-swatch:hover {
+  border-color: var(--color-border-strong);
+}
+
+.pen-swatch__dot {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--pen-color, var(--color-accent));
+}
+
+/* A developer-facing diagnostic (T8), not a real feature — styled as a quiet text
+   toggle rather than a bordered button so it doesn't visually compete with the actual
+   controls at equal weight. */
+.debug-toggle {
+  padding: var(--space-xs) var(--space-xs);
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  cursor: pointer;
+}
+
+.debug-toggle:hover {
+  color: var(--color-text);
+}
+
+.debug-toggle[aria-pressed='true'] {
+  color: var(--color-accent);
+  text-decoration-color: currentColor;
 }
