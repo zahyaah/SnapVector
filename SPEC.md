@@ -16,7 +16,7 @@ region — with segmentation and vectorization running entirely in their own bro
 does not want to upload their image to a paid service.
 
 **Why it's differentiated:** free, fully client-side (the image never leaves the device),
-and a *rough loop* input instead of remove.bg's "trust our model" or SAM's "click a point."
+and a _rough loop_ input instead of remove.bg's "trust our model" or SAM's "click a point."
 
 **Success looks like:** a static site that costs $0 to host at any traffic level, loads
 and paints before the model downloads, and turns a sloppy loop into a usable SVG in a
@@ -33,14 +33,14 @@ few seconds on a mid-range laptop.
 
 ## 2. Capability Map
 
-| Module id | Responsibility | Depends on |
-|---|---|---|
-| `ui-shell` | Theme system, layout, brand tokens, image load, two-canvas stage, freehand stroke overlay | — |
-| `loop-prompt` | Loop polygon → SAM prompt (bbox, interior points, negative point) | — (pure geometry) |
-| `sam-runtime` | ONNX Runtime Web session, image preprocessing, encoder + decoder, mask tensor out | `loop-prompt` |
-| `mask-postprocess` | Hole filling, morphological smoothing, prompt-matched component selection | — (pure raster) |
-| `vectorize` | Contour trace → simplify → Bezier fit → path data | `mask-postprocess` |
-| `svg-export` | Fill-color sampling, SVG document assembly, sanitization, download | `vectorize` |
+| Module id          | Responsibility                                                                            | Depends on         |
+| ------------------ | ----------------------------------------------------------------------------------------- | ------------------ |
+| `ui-shell`         | Theme system, layout, brand tokens, image load, two-canvas stage, freehand stroke overlay | —                  |
+| `loop-prompt`      | Loop polygon → SAM prompt (bbox, interior points, negative point)                         | — (pure geometry)  |
+| `sam-runtime`      | ONNX Runtime Web session, image preprocessing, encoder + decoder, mask tensor out         | `loop-prompt`      |
+| `mask-postprocess` | Hole filling, morphological smoothing, prompt-matched component selection                 | — (pure raster)    |
+| `vectorize`        | Contour trace → simplify → Bezier fit → path data                                         | `mask-postprocess` |
+| `svg-export`       | Fill-color sampling, SVG document assembly, sanitization, download                        | `vectorize`        |
 
 Build order: `ui-shell` + `loop-prompt` → `sam-runtime` → `mask-postprocess` → `vectorize` → `svg-export`
 
@@ -59,17 +59,20 @@ This map matches the four delivery phases in the brief:
 
 ## 3. Tech Stack
 
-| Concern | Choice | Version |
-|---|---|---|
-| Language | TypeScript, `strict: true` | 5.x |
-| Build | Vite | 7.x |
-| Framework | **none** — vanilla TS + DOM | — |
-| Inference | `onnxruntime-web` | 1.30.0 |
-| Model | MobileSAM ONNX (encoder + decoder, split) | pinned at Phase 2 |
-| Vectorization | hand-written TS — see [ADR-0005](docs/adr/0005-hand-written-vectorization.md) | — |
-| Unit tests | Vitest | 3.x |
-| Browser tests | Chrome DevTools MCP, manual per phase | — |
-| Hosting | GitHub Pages (static) | — |
+| Concern       | Choice                                                                        | Version           |
+| ------------- | ----------------------------------------------------------------------------- | ----------------- |
+| Language      | TypeScript, `strict: true`                                                    | 6.0.3             |
+| Build         | Vite                                                                          | 8.3.0             |
+| Framework     | **none** — vanilla TS + DOM                                                   | —                 |
+| Inference     | `onnxruntime-web`                                                             | 1.30.0            |
+| Model         | MobileSAM ONNX (encoder + decoder, split)                                     | pinned at Phase 2 |
+| Vectorization | hand-written TS — see [ADR-0005](docs/adr/0005-hand-written-vectorization.md) | —                 |
+| Unit tests    | Vitest                                                                        | 3.2.7 — see note  |
+| Browser tests | Chrome DevTools MCP, manual per phase                                         | —                 |
+| Hosting       | GitHub Pages (static)                                                         | —                 |
+
+Vitest is held at 3.x because vitest 4 and 5 crash npm 10.9.2's peer resolver
+(`edgesOut` of null). Move to vitest 5 once the toolchain is on a current Node/npm.
 
 No runtime dependencies beyond `onnxruntime-web`. No CSS framework — plain CSS with
 custom properties.
@@ -196,11 +199,11 @@ UI modules that need it.
 
 **Three levels, by module:**
 
-| Level | Applies to | Rigor |
-|---|---|---|
-| Unit (TDD, red-green-refactor) | `loop-prompt`, `mask-postprocess`, `vectorize`, `svg-export`, `color` | Strict. Test written first. |
-| Integration | `sam-runtime` wiring, pipeline end-to-end on a fixture image | Smoke-level; asserts shape/ranges, not pixel equality |
-| Browser | Every phase, via Chrome DevTools MCP | Manual checklist per phase |
+| Level                          | Applies to                                                            | Rigor                                                 |
+| ------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------- |
+| Unit (TDD, red-green-refactor) | `loop-prompt`, `mask-postprocess`, `vectorize`, `svg-export`, `color` | Strict. Test written first.                           |
+| Integration                    | `sam-runtime` wiring, pipeline end-to-end on a fixture image          | Smoke-level; asserts shape/ranges, not pixel equality |
+| Browser                        | Every phase, via Chrome DevTools MCP                                  | Manual checklist per phase                            |
 
 **What gets tested first, always:**
 
@@ -224,6 +227,7 @@ that returns fixture tensors; the real model is exercised only in browser testin
 ## 8. Boundaries
 
 **Always:**
+
 - Run `npm run check` before every commit.
 - One atomic commit per verifiable slice.
 - Keep the stroke overlay canvas and the source-image canvas as separate layers. The
@@ -233,12 +237,14 @@ that returns fixture tensors; the real model is exercised only in browser testin
 - Sanitize SVG output before handing the user a file.
 
 **Ask first:**
+
 - Adding any runtime dependency beyond `onnxruntime-web`.
 - Changing the model (different export, different variant, quantization level).
 - Changing the vectorization approach away from the one in ADR-0005.
 - Anything that changes the public shape of a `lib/` module already consumed elsewhere.
 
 **Never:**
+
 - Add a backend, serverless function, API key, database, or auth. If a step appears to
   need one, **stop and flag it** — we solve it client-side or cut the feature.
 - Add a paid service of any kind.
@@ -255,6 +261,7 @@ that returns fixture tensors; the real model is exercised only in browser testin
 Testable conditions for "v1 is done":
 
 **Functional**
+
 1. Dropping or selecting a PNG/JPEG/WebP renders it on the source canvas, fit to the stage.
 2. Drawing a freehand loop renders a stroke with a contrasting halo that stays legible over
    pure white, pure black, and mid-grey regions of the image, in both themes.
@@ -266,23 +273,14 @@ Testable conditions for "v1 is done":
 6. A donut-shaped mask vectorizes to an SVG path with two subpaths and `fill-rule: evenodd`.
 7. "Download SVG" produces a file that opens cleanly in a browser and in Inkscape/Figma.
 
-**Performance** (mid-range laptop, cold cache, throttled to Fast 3G for load metrics)
-8. First contentful paint < 1.5s, and the app is interactive for upload/draw before the
-   model has finished downloading.
-9. Initial JS bundle (excluding model weights and ORT WASM) < 150 KB gzipped.
-10. Model download shows determinate progress; a second visit loads it from cache.
-11. Encoder run < 3s and decoder run < 200ms on a 1024×1024 input.
+**Performance** (mid-range laptop, cold cache, throttled to Fast 3G for load metrics) 8. First contentful paint < 1.5s, and the app is interactive for upload/draw before the
+model has finished downloading. 9. Initial JS bundle (excluding model weights and ORT WASM) < 150 KB gzipped. 10. Model download shows determinate progress; a second visit loads it from cache. 11. Encoder run < 3s and decoder run < 200ms on a 1024×1024 input.
 
-**Robustness**
-12. Model-load failure shows an actionable error with a retry, and the app stays usable
-    for everything that does not need the model.
-13. Touch drawing works on iOS Safari and Android Chrome.
-14. Keyboard: every control is reachable and operable; the canvas has a documented
-    keyboard-accessible alternative or an explicit, labeled limitation.
-15. `npm run check` passes clean.
+**Robustness** 12. Model-load failure shows an actionable error with a retry, and the app stays usable
+for everything that does not need the model. 13. Touch drawing works on iOS Safari and Android Chrome. 14. Keyboard: every control is reachable and operable; the canvas has a documented
+keyboard-accessible alternative or an explicit, labeled limitation. 15. `npm run check` passes clean.
 
-**Cost**
-16. Total recurring cost is $0. No API keys exist in the repo or in any deployed artifact.
+**Cost** 16. Total recurring cost is $0. No API keys exist in the repo or in any deployed artifact.
 
 ---
 

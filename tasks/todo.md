@@ -8,12 +8,12 @@
 
 ## Phase 1 — Foundation and loop capture
 
-### T1: Scaffold the toolchain
+### T1: Scaffold the toolchain ✅
 **Description:** Vite + TypeScript strict + Vitest + ESLint + Prettier, wired into a single `npm run check` gate.
 **Acceptance:**
-- [ ] `tsconfig.json` has `strict: true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
-- [ ] `npm run check` runs typecheck, lint, and tests in sequence and exits non-zero on any failure
-- [ ] One placeholder test passes, proving the runner works
+- [x] `tsconfig.json` has `strict: true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
+- [x] `npm run check` runs typecheck, lint, and tests in sequence and exits non-zero on any failure (verified: exit 2 with a type error, exit 0 clean)
+- [x] One placeholder test passes, proving the runner works (`src/lib/version.test.ts`, replaced at T5)
 **Verify:** `npm run check` clean · `npm run dev` serves a page · `npm run build` emits to `dist/`
 **Dependencies:** None · **Scope:** S
 **Files:** `package.json`, `tsconfig.json`, `vite.config.ts`, `eslint.config.js`, `.prettierrc`, `index.html`
