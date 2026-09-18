@@ -1,5 +1,7 @@
-const app = document.querySelector<HTMLElement>('#app');
+import { createThemeController } from './ui/theme.js';
 
-if (app) {
-  app.textContent = 'SnapVector';
+const themeToggle = document.querySelector<HTMLButtonElement>('#theme-toggle');
+
+if (themeToggle) {
+  createThemeController(document.documentElement, themeToggle);
 }

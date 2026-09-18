@@ -1,0 +1,102 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100dvh;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  padding-top: calc(var(--space-md) + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-accent);
+}
+
+.brand__mark {
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+
+.brand__name {
+  color: var(--color-text);
+  font-size: var(--text-lg);
+  font-weight: 560;
+  letter-spacing: -0.015em;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.theme-toggle:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.theme-toggle__icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon state keys off aria-pressed rather than [data-theme] because the toggle owns that
+   attribute from its first paint, whereas data-theme is unset until either the inline
+   head script or the controller writes it. */
+.icon-sun {
+  display: none;
+}
+
+.theme-toggle[aria-pressed='true'] .icon-moon {
+  display: none;
+}
+
+.theme-toggle[aria-pressed='true'] .icon-sun {
+  display: block;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+  padding-bottom: calc(var(--space-xl) + env(safe-area-inset-bottom, 0px));
+}
