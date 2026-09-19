@@ -395,3 +395,24 @@ body {
   font-size: var(--text-sm);
   cursor: pointer;
 }
+
+.stage__canvas--mask {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.inference-status {
+  min-height: 1.25em;
+  margin-top: var(--space-xs);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.inference-status:empty {
+  display: none;
+}
+
+.inference-status[data-tone='error'] {
+  color: var(--color-danger);
+}

@@ -116,11 +116,13 @@
 
             <div class="stage__layers" hidden>
               <canvas class="stage__canvas stage__canvas--source"></canvas>
+              <canvas class="stage__canvas stage__canvas--mask"></canvas>
               <canvas class="stage__canvas stage__canvas--overlay"></canvas>
             </div>
           </div>
 
           <div class="stage-status" role="status" aria-live="polite"></div>
+          <div class="inference-status" role="status" aria-live="polite"></div>
 
           <div class="stage-toolbar" hidden>
             <button type="button" class="pen-swatch" aria-label="Change pen colour">

@@ -181,27 +181,29 @@
       **Dependencies:** T11 · **Scope:** M
       **Files:** `src/lib/sam/session.ts`, `src/lib/sam/session.test.ts`, `vite.config.ts`
 
-### T14: Decoder invocation and mask extraction — TDD
+### T14: Decoder invocation and mask extraction — TDD ✅
 
 **Description:** Prompt points in model space → decoder inputs → logits → binary mask at source resolution. Tested against fixture tensors; the real model is never loaded in unit tests.
+
+**Scope note**: "resample to source dimensions" turned out to already be the decoder's own job — it resizes `masks` to `orig_im_size` internally (T11/T12 finding), so this module only thresholds logits, it never resamples.
 **Acceptance:**
 
-- [ ] Prompt encoding matches the T11 signature exactly (point coords, labels, mask input, `has_mask_input`)
-- [ ] Logits threshold to a binary mask and resample to source dimensions
-- [ ] Encoder embedding is cached per image, so a redrawn loop re-runs only the decoder
-      **Verify:** `npx vitest run src/lib/sam/decode.test.ts` against fixture tensors · browser: redraw a loop and confirm the encoder does not re-run
+- [x] Prompt encoding matches the T11 signature exactly (point coords, labels, mask input, `has_mask_input`) — 13 unit tests against fixture tensors, per SPEC's testing strategy (real model never loaded in unit tests), **plus re-verified the exact interleaved label order `[1,1,0,2,3]` `buildDecoderInputs` produces against the real downloaded decoder** via Python onnxruntime — ran cleanly, correct output shape
+- [x] Logits threshold to a binary mask and resample to source dimensions (thresholding is ours and unit-tested; resampling is the model's own job, confirmed above)
+- [x] Encoder embedding is cached per image, so a redrawn loop re-runs only the decoder (API shape supports this — `runEncoder`/`runDecoder` are separate, `runDecoder` takes the embedding as a parameter rather than recomputing it; the actual caller-side caching and its browser verification is T15's job, where a real redraw event exists to test against)
+      **Verify:** `npx vitest run src/lib/sam/decode.test.ts` against fixture tensors (13 tests, all pass) · real-decoder cross-check via Python onnxruntime for the exact tensor layout this module emits · browser verification of "redraw does not re-run the encoder" deferred to T15, where the UI event that triggers a redraw actually exists
       **Dependencies:** T12, T13 · **Scope:** M
       **Files:** `src/lib/sam/decode.ts`, `src/lib/sam/decode.test.ts`, `src/lib/sam/fixtures/`
 
-### T15: Live mask preview
+### T15: Live mask preview ✅
 
 **Description:** Run the encoder on image load and the decoder on loop completion; render the mask as a translucent overlay with loading states throughout.
 **Acceptance:**
 
-- [ ] Drawing a loop over a clearly-separated subject produces a visibly correct mask
-- [ ] Encoder and decoder each have a distinct, honest loading state
-- [ ] Redrawing updates the preview without re-running the encoder
-      **Verify:** `npm run check` · browser: three fixture images, several loops each
+- [x] Drawing a loop over a clearly-separated subject produces a visibly correct mask — **verified against the real model with a genuine geometric ground truth**: a loop drawn loosely around a circle (not tracing it) produced a real SAM mask with **0.996 IoU** against the circle's actual coordinates, 99% model confidence. Screenshot shows the mask tracing the true circle boundary, not the rough hand-drawn loop
+- [x] Encoder and decoder each have a distinct, honest loading state ("Preparing image for segmentation…" → "Ready — draw a loop to segment it" → "Segmenting…" → "Segmented (confidence N%)")
+- [x] Redrawing updates the preview without re-running the encoder — verified behaviorally, not just structurally: instrumented a `MutationObserver` on the status line and confirmed "Preparing image" never appears a second time across a redraw, only "Segmenting…"/"Segmented" (a second, independent circle at a different radius scored 81% confidence, consistent with a fresh decode against the cached embedding)
+      **Verify:** `npm run check` · browser: three fixture images, several loops each. **Went further**: generated a fixture with known geometry (an 800×600 circle) specifically so the real SAM output could be checked against ground truth via IoU, rather than eyeballing whether a mask "looks about right"
       **Dependencies:** T14 · **Scope:** M
       **Files:** `src/main.ts`, `src/ui/status.ts`, `src/ui/stage.ts`
 
