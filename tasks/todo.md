@@ -207,27 +207,29 @@
       **Dependencies:** T14 · **Scope:** M
       **Files:** `src/main.ts`, `src/ui/status.ts`, `src/ui/stage.ts`
 
-### T16: Performance checkpoint
+### T16: Performance checkpoint ✅
 
 **Description:** `/performance-optimization` audit. Measure, then decide quantization on evidence rather than in advance.
 **Acceptance:**
 
-- [ ] FCP < 1.5s and interactive-before-model-ready confirmed under Fast 3G
-- [ ] Initial JS chunk < 150 KB gzipped, excluding model weights and ORT WASM
-- [ ] Encoder < 3s and decoder < 200ms measured on 1024×1024
-- [ ] fp32 vs int8 encoder decided against measured load time and fixture mask quality; recorded as an ADR
-- [ ] Main-thread jank assessed; Web Worker decision made and recorded
-      **Verify:** Lighthouse on the built preview · `performance.measure` around encoder/decoder · bundle analysis
+- [x] FCP < 1.5s and interactive-before-model-ready confirmed under Fast 3G (measured: 628ms under Fast-3G + 4× CPU throttle; file input confirmed usable while model still downloading)
+- [x] Initial JS chunk < 150 KB gzipped, excluding model weights and ORT WASM (measured: 6.26 KB gzipped — wide margin)
+- [x] Encoder < 3s and decoder < 200ms measured on 1024×1024 — **decoder passes (194ms, 3% margin); encoder measured at 3384ms, fails by ~13%**, via the browser's own Long Task API (not wall-clock estimation, which an earlier attempt showed gives misleading numbers)
+- [x] fp32 vs int8 encoder decided against measured load time and fixture mask quality; recorded as an ADR — no int8 artifact exists in the pinned repo (confirmed at T11); producing one is deferred, not undertaken speculatively (ADR-0006)
+- [x] Main-thread jank assessed; Web Worker decision made and recorded — **investigated and rejected COOP/COEP threading** (no production path on GitHub Pages; broke model loading entirely in dev with a real bundler incompatibility). **Decision, confirmed with the user**: accept the 3.4s block for v1 rather than build a dedicated Web Worker now — the fix is a genuine architectural change to two already-consumed modules' calling convention, disproportionate to a 13% overage on a synthetic test fixture. Recorded in ADR-0006, revisit if a real photo proves meaningfully worse or at Phase 4 polish
+
+**Also landed**: switched every `onnxruntime-web` import to the `onnxruntime-web/wasm` (CPU-only) entry point — the default import resolves to the WebGPU/WebNN-capable "jsep" build (28.3 MB WASM) which this project has no use for. The plain build measures 14.2 MB WASM / 71 KB vendor JS (was 403 KB), a ~14 MB reduction in first-visit download. Correctness re-verified after the switch, not assumed: the T15 circle-fixture IoU check produced an **identical 0.996** with the smaller build.
+      **Verify:** Lighthouse-equivalent measurement via Playwright + CDP (FCP under emulated Fast 3G + 4× CPU throttle) · encoder/decoder timing via `PerformanceObserver` for `longtask` entries against the real production build and real downloaded model · bundle analysis from actual `npm run build` output
       **Dependencies:** T15 · **Scope:** M
       **Files:** `vite.config.ts`, `src/lib/sam/*`, `docs/adr/0006-*.md`
 
-### ✅ Checkpoint: Phase 2
+### ✅ Checkpoint: Phase 2 — COMPLETE
 
-- [ ] Mask preview works in a real browser on the fixture set
-- [ ] Performance budget met, or consciously renegotiated and documented
-- [ ] `docs/phase-02.md` written · **Human review before Phase 3**
+- [x] Mask preview works in a real browser on the fixture set (0.996 IoU against known ground truth)
+- [x] Performance budget met, or consciously renegotiated and documented (5 of 6 targets met; encoder's 13% overage consciously accepted for v1, per ADR-0006, confirmed with the user)
+- [x] `docs/phase-02.md` written · **Human review before Phase 3**
 
-### T17: Phase 2 documentation
+### T17: Phase 2 documentation ✅
 
 **Verify:** reads correctly against the diff · **Dependencies:** T16 · **Scope:** S
 **Files:** `docs/phase-02.md`
@@ -238,25 +240,27 @@
 
 > T20–T24 are independent pure modules sharing only the `BinaryMask` type. Parallelizable once T19 lands.
 
-### T18: Binary mask type and hole filling — TDD
+### T18: Binary mask type and hole filling — TDD ✅
 
 **Acceptance:**
 
-- [ ] `BinaryMask` type with width, height, and a typed-array backing store
-- [ ] Hole filling removes enclosed background regions below a size threshold
-- [ ] **A donut stays a donut** — a large genuine hole is never filled
-      **Verify:** `npx vitest run src/lib/mask/binary-mask.test.ts` · **Dependencies:** T1 · **Scope:** S
+- [x] `BinaryMask` type with width, height, and a typed-array backing store (`Uint8Array`)
+- [x] Hole filling removes enclosed background regions below a size threshold (implemented as a border flood-fill, then component-labeling whatever background is left over — one linear pass rather than a per-component border-adjacency check)
+- [x] **A donut stays a donut** — a large genuine hole is never filled (explicit fixture test, hole above threshold verified unchanged)
+      **Verify:** `npx vitest run src/lib/mask/binary-mask.test.ts` — 14 tests, 100% branch coverage (one genuinely unreachable defensive bounds-check was removed rather than padded — proven dead by the border-seeding invariant, not just untested) · **Dependencies:** T1 · **Scope:** S
       **Files:** `src/lib/mask/binary-mask.ts`, `src/lib/mask/binary-mask.test.ts`
 
-### T19: Mask post-processing — TDD
+### T19: Mask post-processing — TDD ✅
 
 **Description:** Morphological open/close smoothing plus connected-component selection anchored to the prompt point.
 **Acceptance:**
 
-- [ ] Speckle below threshold is removed; boundaries smooth without eroding thin features to nothing
-- [ ] The component containing the prompt anchor is the one kept, even when a larger component exists elsewhere
-- [ ] Donut topology survives the full pipeline
-      **Verify:** `npx vitest run src/lib/mask/postprocess.test.ts` on square, circle, donut, speckled, and two-component fixtures
+- [x] Speckle below threshold is removed; boundaries smooth without eroding thin features to nothing — **`smooth()` has an explicit safety guard**: if a single `open()` pass would erase more than half a shape's pixels (a shape thinner than the structuring element, where erosion has no interior to preserve), the open pass is skipped and only `close()` runs. Found via a failing test, not designed in up front: an unguarded open+close completely erased a 2px-tall fixture
+- [x] The component containing the prompt anchor is the one kept, even when a larger component exists elsewhere (explicit two-component fixture, smaller/anchored one kept)
+- [x] Donut topology survives the full pipeline (ring stays connected all the way around; hole stays background)
+
+**Real morphology facts surfaced by test failures, not bugs**: a single-pixel spike touching a wide solid mass survives one `open()` pass (its junction always has all 4 neighbours foreground, so dilation restores it — removing it needs a bigger structuring element or more iterations than "light" smoothing calls for), and the mask's exact corner pixel always erodes away under a cross structuring element (no diagonal neighbour to restore it from) — correct corner-rounding, not a defect, but a bad point to assert "stays foreground" on. Both are documented in the test file rather than worked around.
+      **Verify:** `npx vitest run src/lib/mask/postprocess.test.ts` on square, circle, donut, speckled, and two-component fixtures — 20 tests, 100% branch coverage on both `binary-mask.ts` and `postprocess.ts`
       **Dependencies:** T18 · **Scope:** M
       **Files:** `src/lib/mask/postprocess.ts`, `src/lib/mask/postprocess.test.ts`
 
