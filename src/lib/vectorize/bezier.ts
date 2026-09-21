@@ -120,9 +120,21 @@ function fitOneCubic(
 
   // A negative or vanishingly small alpha places the control point behind the curve's
   // travel direction instead of ahead of it, producing a visibly wrong loop or cusp —
-  // Schneider's own documented fallback for exactly this case.
+  // Schneider's own documented fallback for exactly this case. An excessively LARGE
+  // alpha is the same failure in the other direction, and one the original algorithm's
+  // description doesn't call out: it surfaced on real MobileSAM mask output (not any
+  // synthetic fixture) at a short, sparse sub-segment produced by recursive splitting,
+  // where the tangent inherited from an earlier, larger split was a poor fit for this
+  // particular short run. The result solves the least-squares system "correctly" (a
+  // positive, non-degenerate alpha) but places a control point so far past the curve's
+  // own endpoints that it loops back on itself, visible as a small spike or
+  // self-intersection in the rendered shape. Bounding alpha to a generous multiple of
+  // the chord length catches this the same way the negative case is caught, without
+  // constraining legitimately curvy fits — see bezier.test.ts's "real MobileSAM
+  // output" fixture, extracted from the exact point sequence that produced the spike.
   const minAlpha = chordLength * 1e-6;
-  if (alpha1 < minAlpha || alpha2 < minAlpha) {
+  const maxAlpha = chordLength * 1.5;
+  if (alpha1 < minAlpha || alpha2 < minAlpha || alpha1 > maxAlpha || alpha2 > maxAlpha) {
     alpha1 = fallback;
     alpha2 = fallback;
   }

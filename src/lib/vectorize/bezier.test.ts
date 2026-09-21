@@ -235,6 +235,91 @@ describe('fitCurve — least-squares fallback paths', () => {
   });
 });
 
+describe('fitPolygon — real MobileSAM output exposed an excessively-large-alpha case', () => {
+  // The exact 50-point simplified contour from a real MobileSAM segmentation (T15's
+  // circle fixture, traced at T20 and simplified at T21 with tolerance 1). Extracting
+  // just the local few points around the failure and calling fitCurve directly does
+  // NOT reproduce the bug: the wrong control point only appears because of the specific
+  // tangent inherited from fitPolygon's own recursive split history over the FULL
+  // closed loop, not from these points in isolation. This fixture is the whole polygon
+  // for exactly that reason — a smaller extraction was tried first and silently failed
+  // to catch the regression (it passed even with the fix reverted).
+  const REAL_CIRCLE_CONTOUR: Polygon = [
+    { x: 355.5, y: 142 },
+    { x: 331, y: 147.5 },
+    { x: 326, y: 150.5 },
+    { x: 317, y: 152.5 },
+    { x: 304, y: 159.5 },
+    { x: 286, y: 171.5 },
+    { x: 270.5, y: 186 },
+    { x: 270.5, y: 188 },
+    { x: 259.5, y: 200 },
+    { x: 255.5, y: 206 },
+    { x: 255.5, y: 209 },
+    { x: 250.5, y: 214 },
+    { x: 243.5, y: 229 },
+    { x: 238.5, y: 246 },
+    { x: 235.5, y: 260 },
+    { x: 235.5, y: 302 },
+    { x: 241.5, y: 329 },
+    { x: 249.5, y: 347 },
+    { x: 253.5, y: 351 },
+    { x: 256.5, y: 359 },
+    { x: 270.5, y: 377 },
+    { x: 288, y: 393.5 },
+    { x: 295, y: 396.5 },
+    { x: 309, y: 406.5 },
+    { x: 336, y: 417.5 },
+    { x: 361, y: 422.5 },
+    { x: 389, y: 422.5 },
+    { x: 414, y: 417.5 },
+    { x: 441, y: 406.5 },
+    { x: 455, y: 396.5 },
+    { x: 462, y: 393.5 },
+    { x: 470, y: 384.5 },
+    { x: 479.5, y: 377 },
+    { x: 479.5, y: 375 },
+    { x: 493.5, y: 359 },
+    { x: 508.5, y: 328 },
+    { x: 515.5, y: 298 },
+    { x: 515.5, y: 267 },
+    { x: 508.5, y: 234 },
+    { x: 500.5, y: 216 },
+    { x: 496.5, y: 212 },
+    { x: 493.5, y: 204 },
+    { x: 479.5, y: 188 },
+    { x: 478.5, y: 185 },
+    { x: 470, y: 178.5 },
+    { x: 463, y: 170.5 },
+    { x: 433, y: 152.5 },
+    { x: 424, y: 150.5 },
+    { x: 410, y: 144.5 },
+    { x: 394, y: 141.5 },
+  ];
+
+  it('never produces a control point far outside the chord it belongs to', () => {
+    // Reproduces the exact call that produced the spike: curve[4] had p0=(255.5,209),
+    // p3=(243.5,229) (chord length ~23.3) but p2=(259.29,186.89) — roughly 45 units
+    // away, nearly double the chord length and pointing backward past the endpoint.
+    // The least-squares solve wasn't negative (the existing minAlpha guard already
+    // catches that) or degenerate (the det guard) — it was simply an excessively
+    // large, "successfully" computed alpha given a tangent inherited from an earlier
+    // split that was a poor fit for this short, sparse run.
+    const curves = fitPolygon(REAL_CIRCLE_CONTOUR, 1.5);
+    expect(curves.length).toBeGreaterThan(0);
+
+    for (const curve of curves) {
+      const chord = distance(curve.p0, curve.p3);
+      // The actual failure measured alpha2/chord ≈ 1.93 (44.97 / 23.32) — a threshold
+      // has to sit below that to mean anything. 1.6x is comfortably under the observed
+      // failure and still well above what any of this fixture's well-behaved segments
+      // need, so it isn't just coincidentally tuned to this one case.
+      expect(distance(curve.p1, curve.p0)).toBeLessThan(Math.max(chord * 1.6, 5));
+      expect(distance(curve.p2, curve.p3)).toBeLessThan(Math.max(chord * 1.6, 5));
+    }
+  });
+});
+
 describe('fitCurve — degenerate input', () => {
   it('returns no segments for fewer than 2 points', () => {
     expect(fitCurve([], 1)).toEqual([]);

@@ -310,14 +310,18 @@
       **Dependencies:** T21 · **Scope:** M
       **Files:** `src/lib/vectorize/bezier.ts`, `src/lib/vectorize/bezier.test.ts`
 
-### T23: Contours to SVG path data — TDD
+### T23: Contours to SVG path data — TDD ✅
 
 **Acceptance:**
 
-- [ ] Emits valid `d` strings with `M`/`C`/`Z`
-- [ ] **Donut produces two subpaths rendering correctly under `fill-rule: evenodd`** (SPEC §9.6)
-- [ ] Coordinates rounded to a fixed precision to keep output compact
-      **Verify:** `npx vitest run src/lib/vectorize/path.test.ts` · **Dependencies:** T22 · **Scope:** S
+- [x] Emits valid `d` strings with `M`/`C`/`Z`
+- [x] **Donut produces two subpaths rendering correctly under `fill-rule: evenodd`** (SPEC §9.6) — verified with a real fill-rule test, not a string-shape check: sampled the fitted curves back into polylines and ran a genuine combined ray-crossing count across both subpaths (exactly what evenodd means), confirming a point in the ring is inside (odd crossings) and a point in the hole is outside (even crossings) — including a test proving this holds even when one subpath's winding is deliberately reversed, since evenodd famously doesn't care about winding direction
+- [x] Coordinates rounded to a fixed precision to keep output compact (trailing zeros stripped, `-0` normalized to `0`)
+
+**Found and fixed a real, visible geometry bug via full-pipeline real-data testing** — not caught by any of T20/T21/T22's own unit tests, all passing at the time. Rendering the actual pipeline's output (real mask → contour → simplify → fit → path → real SVG in a real browser) showed a small self-intersecting spike on the circle's boundary. Traced it to `bezier.ts`'s `fitOneCubic`: a control point landing ~45 units from its own endpoint on a ~23-unit chord (nearly 2x, pointing backward past it) — a case the existing negative-alpha guard didn't catch, since the computed alpha was positive and the linear system wasn't degenerate. Root cause: a short, sparse sub-segment (produced by recursive splitting) inheriting a tangent estimate from an earlier, larger split that was a poor fit for this particular short run.
+
+Fixed with a symmetric upper bound on alpha (same fallback as the negative case), and this surfaced a second, non-obvious problem: my *first* regression test — extracting just the local 9 points around the failure — passed even with the fix reverted, because the bug depends on the specific tangent inherited from the full 50-point closed polygon's recursive split history, not on those points in isolation. Rebuilt the test around the complete real 50-point contour through `fitPolygon` (matching the actual failing call), and deliberately re-disabled the fix to confirm the rebuilt test actually fails without it before restoring it — a test that can't fail is not a regression test.
+      **Verify:** `npx vitest run src/lib/vectorize/path.test.ts` — 9 tests, 100% coverage · full real-pipeline cross-check (real mask → SVG file → rendered in a real browser), which is what actually caught the spike bug above; `src/lib/vectorize/bezier.test.ts` grew a 16th test (the real 50-point fixture) verified to fail without the fix and pass with it · **Dependencies:** T22 · **Scope:** S
       **Files:** `src/lib/vectorize/path.ts`, `src/lib/vectorize/path.test.ts`
 
 ### T24: Fill colour sampling — TDD
