@@ -1,14 +1,7 @@
-import { sampleAverageColor, type PixelBuffer } from './lib/color/sample.js';
 import { loopToSamPrompt, type SamPrompt } from './lib/geometry/prompt.js';
-import { fillHoles, type BinaryMask } from './lib/mask/binary-mask.js';
-import { postprocessMask } from './lib/mask/postprocess.js';
 import { encoderInputSize, pixelsToEncoderTensor } from './lib/sam/preprocess.js';
-import { buildSvgDocument } from './lib/svg/document.js';
+import { buildResultSvg } from './lib/svg/pipeline.js';
 import { sanitizeFilename } from './lib/svg/sanitize.js';
-import { fitPolygon } from './lib/vectorize/bezier.js';
-import { traceContours } from './lib/vectorize/contours.js';
-import { buildPathData } from './lib/vectorize/path.js';
-import { simplifyPolygon } from './lib/vectorize/simplify.js';
 import { createResultPanel } from './ui/result-panel.js';
 import { createStage } from './ui/stage.js';
 import { createStatusLine } from './ui/status.js';
@@ -61,47 +54,6 @@ function formatProgress(loadedBytes: number, totalBytes: number | null): string 
 
 function formatConfidence(iou: number): string {
   return `${String(Math.round(iou * 100))}%`;
-}
-
-// Both are pixel-space constants, deliberately not resolution-relative (ADR-0005: the
-// simplification tolerance is "the single knob governing whether output reads as
-// clean vector or traced blob", tuned once against real MobileSAM output rather than
-// derived per-image). The hole-fill threshold only needs to be big enough to erase
-// small thresholding-noise specks inside an otherwise solid region — a real,
-// intentionally-donut-shaped selection is holed on a much larger scale than that and
-// survives untouched.
-const SIMPLIFY_TOLERANCE_PX = 1.5;
-const MAX_NOISE_HOLE_SIZE_PX = 64;
-
-/**
- * The full mask-to-SVG pipeline (`mask-postprocess` → `vectorize` → `svg-export`, per
- * SPEC's capability map), composed here rather than inside any one of those pure
- * modules — each stays a small, independently-testable function over plain data, and
- * only this orchestration knows the fixed pixel-space constants that connect them.
- * Returns `null` for a mask with no surviving contour (e.g. the anchor point's
- * component was fully removed by smoothing) rather than emitting an empty document.
- */
-function buildResultSvg(
-  mask: BinaryMaskResult,
-  anchor: { x: number; y: number },
-  sourcePixels: PixelBuffer,
-): string | null {
-  const filled: BinaryMask = fillHoles(mask, MAX_NOISE_HOLE_SIZE_PX);
-  const cleaned = postprocessMask(filled, anchor);
-
-  const curves = traceContours(cleaned).map((polygon) =>
-    fitPolygon(simplifyPolygon(polygon, SIMPLIFY_TOLERANCE_PX), SIMPLIFY_TOLERANCE_PX),
-  );
-  const pathData = buildPathData(curves);
-  if (pathData === '') return null;
-
-  const fillColor = sampleAverageColor(sourcePixels, cleaned);
-  return buildSvgDocument({
-    width: cleaned.width,
-    height: cleaned.height,
-    pathData,
-    fillColor,
-  });
 }
 
 if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
