@@ -373,15 +373,20 @@ Fixed with a symmetric upper bound on alpha (same fallback as the negative case)
 
 ## Phase 4 — Polish and ship
 
-### T28: Loading, progress, and error states
+### T28: Loading, progress, and error states ✅
 
 **Acceptance:**
 
-- [ ] Every async step has an honest state; no indeterminate spinner where progress is knowable
-- [ ] Model-load failure shows an actionable message with a working retry (SPEC §9.12)
-- [ ] Non-model features stay usable when the model is unavailable
+- [x] Every async step has an honest state; no indeterminate spinner where progress is knowable — model download shows a real determinate percentage, verified under a throttled (~2 Mbps) real network in Chromium to move incrementally byte-by-byte (41 distinct updates, 0%→13% captured, monotonically non-decreasing), not just jump from nothing to done; encoder/decoder runs show indeterminate text ("Preparing…"/"Segmenting…") since their progress genuinely isn't knowable mid-call
+- [x] Model-load failure shows an actionable message with a working retry (SPEC §9.12) — verified in a real browser with the CDN fully blocked: error message + working Retry button appears, and clicking Retry after unblocking successfully loads the real model
+- [x] Non-model features stay usable when the model is unavailable — verified: image upload and the freehand loop still work with the model down. **Caught and fixed a real bug along the way** (see below)
       **Verify:** DevTools: block the CDN, throttle, fail mid-download, then retry · **Dependencies:** T27 · **Scope:** M
-      **Files:** `src/ui/status.ts`, `src/lib/sam/session.ts`, `src/main.ts`
+      **Files:** `src/ui/status.ts`, `src/lib/sam/session.ts`, `src/lib/sam/model-cache.ts`, `src/lib/sam/model-cache.test.ts`, `src/main.ts`
+
+**Two real bugs found via this task's own verification, both fixed with the user's explicit go-ahead (per the standing "stop and ask before fixing" rule):**
+
+1. **Misleading message when the model has permanently failed.** Drawing a loop while the model was down always said "Still preparing the model — try drawing again in a moment," even after a real, confirmed failure — implying waiting would help when only clicking Retry would. Fixed by tracking an explicit `modelLoadState` (`'loading' | 'ready' | 'error'`) so the message is honest in each case.
+2. **A genuine mid-download connection drop was unhandled.** `fetchModelWeights`'s streamed-read loop had no `try/catch` around `reader.read()` — a connection dropping after the response headers arrived but during the body stream rejected uncaught, bypassing the function's `Result`-returning contract entirely and (per the actual call chain) surfacing in the app as a permanently stuck loading state with no error, no Retry button, and an unhandled rejection in the console. Reproduced directly (a mocked `fetch` whose reader succeeds once then throws), fixed with a `try/catch` around the read loop returning the same `{kind: 'network'}` error the existing `fetch()` catch already uses, and guarded with 4 new tests in `model-cache.test.ts` (this module had none before) — the regression case proven to fail without the fix and pass with it. Reverified the real, unthrottled, non-mocked model download still succeeds end to end after the fix.
 
 ### T29: Mobile touch and responsive pass
 
