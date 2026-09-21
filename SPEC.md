@@ -69,7 +69,7 @@ This map matches the four delivery phases in the brief:
 | Vectorization | hand-written TS — see [ADR-0005](docs/adr/0005-hand-written-vectorization.md) | —                 |
 | Unit tests    | Vitest                                                                        | 3.2.7 — see note  |
 | Browser tests | Chrome DevTools MCP, manual per phase                                         | —                 |
-| Hosting       | GitHub Pages (static)                                                         | —                 |
+| Hosting       | Vercel (static) — see note below                                              | —                 |
 
 No runtime dependencies beyond `onnxruntime-web`. No CSS framework — plain CSS with
 custom properties.
@@ -125,7 +125,7 @@ src/
       bezier.ts               Cubic Bezier curve fitting
       path.ts                 Contours -> SVG path `d` strings
     color/
-      sample.ts               Fill color / k-means palette from source pixels
+      sample.ts               Fill color from source pixels inside the mask
     svg/
       document.ts             SVG assembly
       sanitize.ts             Output hardening before download
@@ -323,6 +323,18 @@ keyboard-accessible alternative or an explicit, labeled limitation. 15. `npm run
 
 - Modern evergreen browsers only; no legacy fallbacks.
 - Vitest for unit tests; ESLint + Prettier gate `npm run check`.
-- Deploy target is GitHub Pages.
+- **Deploy target changed at T33 (2026-09-22): Vercel, not GitHub Pages.** The original
+  assumption held through Phase 3; at deploy time the repo's GitHub Pages host would have
+  required either a public repo (fine, and done anyway — see below) or, had the account
+  stayed private, a paid GitHub plan, and the user redirected to Vercel instead — still
+  $0 for a project this size, and it needs no server-side code (still no backend of any
+  kind), so the $0-cost and client-side-only constraints both hold unchanged. One
+  consequence worth flagging, not acted on: Vercel (unlike GitHub Pages) can set custom
+  response headers via `vercel.json`, which reopens the COOP/COEP main-thread-blocking
+  question ADR-0006 closed partly *because* GitHub Pages couldn't set them. Revisit only
+  if picked up deliberately — not changed as a side effect of this deploy-target switch.
+- The repo is now public (github.com/zahyaah/SnapVector) — required for free-tier
+  GitHub Pages at the time that was still the plan; kept public after switching to
+  Vercel since the project is intended as open source anyway (confirmed with the user).
 - `onnxruntime-web` is the only runtime dependency.
 - One region per pass; multi-select is a v1 non-goal.
