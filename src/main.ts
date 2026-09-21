@@ -73,6 +73,12 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
   let currentEmbedding: OrtTensor | null = null;
   let uploadFilename = 'snapvector-export.svg';
 
+  // Tracked separately from `sam` so a loop drawn while the model is unavailable gets
+  // an honest message: "still loading" and "failed, retry above" call for different
+  // wording, and both look identical as `sam === null` on their own.
+  type ModelLoadState = 'loading' | 'ready' | 'error';
+  let modelLoadState: ModelLoadState = 'loading';
+
   // Bumped whenever the loaded image changes. An in-flight encoder call captures the
   // generation it started with and checks it again on completion — if a newer image
   // has replaced the one it was encoding, it discards its result instead of caching an
@@ -104,7 +110,14 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
 
   async function decodeCurrentLoop(prompt: SamPrompt): Promise<void> {
     if (sam === null || currentEmbedding === null || stage.sourceSize === null) {
-      inferenceStatus.set('Still preparing the model — try drawing again in a moment.');
+      if (modelLoadState === 'error') {
+        inferenceStatus.set(
+          "Segmentation isn't available — retry loading the model above.",
+          'error',
+        );
+      } else {
+        inferenceStatus.set('Still preparing — try drawing again in a moment.');
+      }
       return;
     }
     const myGeneration = imageGeneration;
@@ -191,6 +204,7 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
   // targets that initial chunk, not the model). Triggered after first paint, never
   // blocking it.
   async function loadSamModel(): Promise<void> {
+    modelLoadState = 'loading';
     modelStatus.set('Loading segmentation model…');
     const [{ createSamSession }, decodeModule] = await Promise.all([
       import('./lib/sam/session.js'),
@@ -206,6 +220,7 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
     });
 
     if (!result.ok) {
+      modelLoadState = 'error';
       modelStatusNode.textContent = '';
       modelStatusNode.dataset.tone = 'error';
       const message = document.createElement('span');
@@ -224,6 +239,7 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
       runEncoder: decodeModule.runEncoder,
       runDecoder: decodeModule.runDecoder,
     };
+    modelLoadState = 'ready';
     modelStatus.set('Segmentation model ready.');
 
     // The user may have uploaded an image while the model was still downloading.

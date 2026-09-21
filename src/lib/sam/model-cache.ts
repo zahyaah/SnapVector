@@ -67,12 +67,24 @@ export async function fetchModelWeights(
 
   const chunks: Uint8Array[] = [];
   let loadedBytes = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    loadedBytes += value.byteLength;
-    onProgress?.({ loadedBytes, totalBytes });
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loadedBytes += value.byteLength;
+      onProgress?.({ loadedBytes, totalBytes });
+    }
+  } catch (error) {
+    // A connection can drop after the response headers already arrived (fetch()
+    // resolved, response.ok was true) but before the body finishes streaming — a
+    // genuine "fail mid-download" network interruption, distinct from fetch() itself
+    // rejecting (already handled above). Without this, the rejection would propagate
+    // uncaught past this function's Result-returning contract.
+    return err({
+      kind: 'network',
+      message: error instanceof Error ? error.message : String(error),
+    });
   }
 
   const merged = new Uint8Array(loadedBytes);
