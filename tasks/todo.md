@@ -388,15 +388,15 @@ Fixed with a symmetric upper bound on alpha (same fallback as the negative case)
 1. **Misleading message when the model has permanently failed.** Drawing a loop while the model was down always said "Still preparing the model — try drawing again in a moment," even after a real, confirmed failure — implying waiting would help when only clicking Retry would. Fixed by tracking an explicit `modelLoadState` (`'loading' | 'ready' | 'error'`) so the message is honest in each case.
 2. **A genuine mid-download connection drop was unhandled.** `fetchModelWeights`'s streamed-read loop had no `try/catch` around `reader.read()` — a connection dropping after the response headers arrived but during the body stream rejected uncaught, bypassing the function's `Result`-returning contract entirely and (per the actual call chain) surfacing in the app as a permanently stuck loading state with no error, no Retry button, and an unhandled rejection in the console. Reproduced directly (a mocked `fetch` whose reader succeeds once then throws), fixed with a `try/catch` around the read loop returning the same `{kind: 'network'}` error the existing `fetch()` catch already uses, and guarded with 4 new tests in `model-cache.test.ts` (this module had none before) — the regression case proven to fail without the fix and pass with it. Reverified the real, unthrottled, non-mocked model download still succeeds end to end after the fix.
 
-### T29: Mobile touch and responsive pass
+### T29: Mobile touch and responsive pass ✅
 
 **Acceptance:**
 
-- [ ] Freehand drawing works with touch on iOS Safari and Android Chrome
-- [ ] Page scroll does not fight the drawing gesture; pinch-zoom is not broken elsewhere
-- [ ] Controls meet 44px touch targets; layout holds at 360px
+- [x] Freehand drawing works with touch on iOS Safari and Android Chrome — the overlay already used pointer events (unified mouse/touch/pen input), so no code change was needed; verified with genuine touch events (CDP `Input.dispatchTouchEvent`, not mouse events relabeled) on an emulated iPhone 13: a touch-drawn loop reached full real segmentation at 99% confidence, same as the mouse path. No real iOS/Android device lab available in this environment — device emulation is the established substitute throughout this project (per T3/T4's a11y passes)
+- [x] Page scroll does not fight the drawing gesture; pinch-zoom is not broken elsewhere — `touch-action: none` on the overlay canvas (already present since T7) verified to fully suppress scroll during a real touch-drag (`window.scrollY` unchanged: 0 before, 0 after); the viewport meta tag sets no `user-scalable`/`maximum-scale`, so native pinch-zoom elsewhere on the page is never disabled
+- [x] Controls meet 44px touch targets; layout holds at 360px — **found and fixed a real gap**: only `#theme-toggle` (already 44×44) met the 44px minimum; `.toolbar-button` (Undo/Clear loop/Choose a different image/Download SVG), `.pen-swatch`, and `.debug-toggle` all measured 36–40px tall in a real rendered iPhone 13 viewport. Fixed by adding `min-height: 44px` with flex centering to `.toolbar-button`/`.debug-toggle` and bumping `.pen-swatch` to 44×44 explicitly; re-measured all 7 interactive controls at 44px+ after the fix. Zero horizontal overflow confirmed at 360px width
       **Verify:** real devices or device emulation · **Dependencies:** T28 · **Scope:** M
-      **Files:** `src/ui/stroke-overlay.ts`, `src/styles/app.css`
+      **Files:** `src/styles/app.css`
 
 ### T30: Accessibility pass
 

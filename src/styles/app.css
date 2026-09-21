@@ -333,6 +333,10 @@ body {
 }
 
 .toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -365,8 +369,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -389,6 +393,9 @@ body {
    toggle rather than a bordered button so it doesn't visually compete with the actual
    controls at equal weight. */
 .debug-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: var(--space-xs) var(--space-xs);
   border: none;
   background: none;
