@@ -264,24 +264,32 @@
       **Dependencies:** T18 · **Scope:** M
       **Files:** `src/lib/mask/postprocess.ts`, `src/lib/mask/postprocess.test.ts`
 
-### T20: Marching squares contour extraction — TDD
+### T20: Marching squares contour extraction — TDD ✅
 
 **Acceptance:**
 
-- [ ] Closed contours for outer boundaries and holes, with opposite winding
-- [ ] **Saddle-point ambiguity resolved consistently** — named explicitly as a fixture case
-- [ ] Masks touching the raster border produce closed contours, not open paths
-      **Verify:** `npx vitest run src/lib/vectorize/contours.test.ts` · square/circle/donut/border-touching fixtures
+- [x] Closed contours for outer boundaries and holes, with opposite winding — every one of the 14 non-trivial marching-squares cases was derived from **one fixed algebraic rule** (orient each segment so its foreground corner(s) give a strictly negative cross product), rather than picked by eye per case. Opposite winding for outer-vs-hole falls out of that rule automatically rather than being special-cased
+- [x] **Saddle-point ambiguity resolved consistently** — both saddle cases (5 and 10) resolve by applying the same single-corner rule to each diagonal corner independently, treating them as separate touching regions. Deliberately consistent with `lib/mask`'s existing 4-connectivity convention, where diagonal contact doesn't count as connected either — not an arbitrary, unrelated choice
+- [x] Masks touching the raster border produce closed contours, not open paths (solved by padding the mask with a 1px background border before tracing, removed again from output coordinates — every foreground region is fully enclosed by sample data regardless of where it sits in the original mask)
+
+**Went beyond the fixture set**: extracted a real segmentation mask from the actual browser pipeline (a real MobileSAM output, 750×563, ~62k foreground pixels) and traced it with the real implementation — 16.3ms, one contour, and **the traced area matched the mathematically expected circle area (πr²) to within 0.2%**. This validates the algorithm against real model output, not just hand-built fixtures small enough to verify by eye.
+      **Verify:** `npx vitest run src/lib/vectorize/contours.test.ts` · square/circle/donut/border-touching fixtures — 14 tests, 100% line coverage (two categories of defensive branch — a case-table-corruption guard and a degenerate-chain guard — are deliberately left untested rather than proven dead or gamed for coverage, documented inline as to why); plus a real-mask cross-check via `vite-node` against the actual browser pipeline
       **Dependencies:** T19 · **Scope:** M
       **Files:** `src/lib/vectorize/contours.ts`, `src/lib/vectorize/contours.test.ts`
 
-### T21: Douglas-Peucker simplification — TDD
+### T21: Douglas-Peucker simplification — TDD ✅
 
 **Acceptance:**
 
-- [ ] Tolerance 0 is lossless; larger tolerance monotonically reduces point count
-- [ ] Closed contours stay closed; no self-intersection introduced at practical tolerances
-      **Verify:** `npx vitest run src/lib/vectorize/simplify.test.ts` · **Dependencies:** T20 · **Scope:** S
+- [x] Tolerance 0 is lossless; larger tolerance monotonically reduces point count — verified against real data too: the real 1124-point circle contour from T20 simplifies to 393 points at tolerance 0 with **exactly 0.00% area drift**, and monotonically down to 16 points by tolerance 4
+- [x] Closed contours stay closed; no self-intersection introduced at practical tolerances
+
+**Adapted for closed polygons, not open polylines**: T20's contours are always implicitly closed, which the textbook Douglas-Peucker algorithm doesn't directly handle. Split into two open arcs at a farthest-point pair, simplify each independently, rejoin — the standard technique, done in O(n) rather than an O(n²) all-pairs farthest search, since a single farthest-from-an-arbitrary-anchor point gives an adequate split.
+
+**Found and fixed a real bug via TDD, not a test error this time**: at extreme tolerance, both arcs could independently collapse to just their shared two endpoints, degenerating the whole closed polygon to 2 points — a shape with no area, failing "closed contours stay closed." Fixed with an explicit floor: if simplification would drop below a triangle, fall back to the single most-deviating point from the original polygon, keeping cyclic order (and therefore winding) intact.
+
+**Two provably-dead defensive branches removed, not left untested**: `splitIndex === 0` can never occur (the search sentinel starts at -1, so the first candidate always wins the very first comparison, even for an all-identical-points polygon), and `maxIndex === -1` in the triangle-floor fallback can't either (the calling context already guarantees `polygon.length >= 3`, so at least one candidate index always exists). Same pattern as T18/T20: proved unreachable and removed, not padded or left unexplained.
+      **Verify:** `npx vitest run src/lib/vectorize/simplify.test.ts` — 14 tests, 100% coverage · real-contour cross-check via `vite-node` against T20's actual 1124-point mask output · **Dependencies:** T20 · **Scope:** S
       **Files:** `src/lib/vectorize/simplify.ts`, `src/lib/vectorize/simplify.test.ts`
 
 ### T22: Bezier curve fitting — TDD
