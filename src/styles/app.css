@@ -176,6 +176,18 @@ body {
   text-transform: uppercase;
 }
 
+/* SPEC §9.14: the freehand loop is inherently a pointing-device gesture — an
+   arrow-key polygon-placement mode would be a materially different, worse way to
+   perform the actual task, not real parity, so this is the documented explicit
+   limitation rather than a keyboard-equivalent interaction (see SPEC §10). Shown to
+   every visitor, not just screen-reader users, so a keyboard-only sighted visitor
+   (e.g. a switch-device user) isn't left guessing why the canvas does nothing. */
+.stage-limitation-note {
+  margin: 0 0 var(--space-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
 .stage {
   display: grid;
   place-items: center;

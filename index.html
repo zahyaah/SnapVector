@@ -87,6 +87,10 @@
       <div class="workspace">
         <section class="panel stage-panel" aria-labelledby="stage-heading">
           <h2 id="stage-heading" class="panel__heading">Source image</h2>
+          <p class="stage-limitation-note">
+            Drawing a selection loop needs a mouse, trackpad, stylus, or touchscreen —
+            keyboard-only interaction isn't yet supported for this step.
+          </p>
 
           <div class="stage" data-state="empty">
             <label class="dropzone" for="file-input">
@@ -154,7 +158,7 @@
             <button type="button" class="toolbar-button download-button" disabled>
               Download SVG
             </button>
-            <p class="download-hint"></p>
+            <p class="download-hint" role="status" aria-live="polite"></p>
           </div>
         </aside>
       </div>

@@ -301,6 +301,24 @@ keyboard-accessible alternative or an explicit, labeled limitation. 15. `npm run
    receives a letterboxed 1024×1024; the display canvas caps the longest side at 2048
    to bound memory.
 
+**Resolved at Phase 4 (T30, 2026-09-21):**
+
+6. ~~Canvas keyboard accessibility (§9.14)?~~ → Explicit, labeled limitation, not a
+   keyboard-equivalent interaction. A freehand loop is inherently a pointing-device
+   gesture; the nearest keyboard equivalent (e.g. arrow-key polygon placement) would be
+   a materially different, worse way to perform the actual task, not real parity — and
+   SPEC's own acceptance criterion treats "documented limitation" as an equally valid
+   resolution to "keyboard-accessible alternative," not a lesser one. A visible note
+   (`.stage-limitation-note`, shown to every visitor, not just screen-reader users) now
+   states this plainly before the canvas: "Drawing a selection loop needs a mouse,
+   trackpad, stylus, or touchscreen — keyboard-only interaction isn't yet supported for
+   this step." Every other control in the app remains fully keyboard reachable and
+   operable — verified directly (Tab order, and operating the pen swatch and prompt-debug
+   toggle via Enter alone) — and every async state change is announced via an
+   `aria-live="polite"` region, including the result panel's download readiness (a real
+   gap found and fixed during this task: `.download-hint` had no live-region markup
+   before T30).
+
 **Standing assumptions, confirmed at the gate:**
 
 - Modern evergreen browsers only; no legacy fallbacks.

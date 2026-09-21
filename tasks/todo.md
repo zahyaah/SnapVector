@@ -398,17 +398,19 @@ Fixed with a symmetric upper bound on alpha (same fallback as the negative case)
       **Verify:** real devices or device emulation · **Dependencies:** T28 · **Scope:** M
       **Files:** `src/styles/app.css`
 
-### T30: Accessibility pass
+### T30: Accessibility pass ✅
 
 **Description:** `/frontend-ui-engineering`. The canvas is the hard part — SPEC §9.14 requires either a keyboard-accessible alternative or an explicit, labeled limitation. Decide and implement one.
 **Acceptance:**
 
-- [ ] Every control is keyboard reachable and operable with a visible focus state
-- [ ] Async state changes are announced via a live region
-- [ ] axe reports no violations; contrast passes in both themes
-- [ ] The canvas decision is implemented and documented, not left implicit
+- [x] Every control is keyboard reachable and operable with a visible focus state — verified directly: full Tab-order walkthrough in both the empty and loaded states matches DOM order exactly (theme toggle → pen swatch → Undo → Clear loop → Choose a different image → Prompt debug, wrapping correctly), and operating the pen swatch and prompt-debug toggle via Enter alone (no mouse) produced the same effect as a click on each. The existing global `:focus-visible` ring (from T2) already covered every one of these — no new focus styling needed
+- [x] Async state changes are announced via a live region — `#model-status`, `.stage-status`, and `.inference-status` already had `role="status" aria-live="polite"` from earlier phases. **Found and fixed a real gap**: `.download-hint` (T26) had none, so the download-readiness transition was silent to screen-reader users. Added `role="status" aria-live="polite"`, then verified end to end that the text genuinely transitions ("Draw a loop…" → "Ready to download.") within that live region during a real segmentation run
+- [x] axe reports no violations; contrast passes in both themes — extended `scripts/a11y.mjs` to also scan the "loaded" state (toolbar visible), since the previous version only ever scanned the empty state and axe silently skips `[hidden]` content — the toolbar's own buttons had literally never been scanned before. 0 violations, 0 horizontal overflow across empty × loaded, light × dark, 360/768/1440px (12 configurations)
+- [x] The canvas decision is implemented and documented, not left implicit — decided: an explicit, labeled limitation rather than a keyboard-equivalent interaction (a freehand loop is inherently a pointing-device gesture; an arrow-key polygon-placement mode would be a different, worse way to do the actual task, not real parity — and SPEC's own criterion treats this as an equally valid resolution). A visible note (not just screen-reader-only text) now sits above the stage, shown to every visitor. Recorded in [SPEC.md](../SPEC.md) §10 as Open Question 6, resolved
       **Verify:** keyboard-only run-through · axe · VoiceOver spot-check · **Dependencies:** T29 · **Scope:** M
-      **Files:** `index.html`, `src/ui/*`, `src/styles/app.css`
+      **Files:** `index.html`, `src/styles/app.css`, `scripts/a11y.mjs`, `SPEC.md`
+
+**Note on VoiceOver:** no macOS/iOS screen reader spot-check was performed in this sandboxed environment (no interactive AT session available). Mitigated by using axe's automated ARIA/live-region/contrast rules plus a direct behavioral check of the live-region text actually changing at the right moments — a reasonable substitute, but not a full replacement for a real screen-reader pass. Flagged here rather than silently skipped.
 
 ### T31: Final visual pass
 
