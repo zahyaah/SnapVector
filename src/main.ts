@@ -1,5 +1,15 @@
+import { sampleAverageColor, type PixelBuffer } from './lib/color/sample.js';
 import { loopToSamPrompt, type SamPrompt } from './lib/geometry/prompt.js';
+import { fillHoles, type BinaryMask } from './lib/mask/binary-mask.js';
+import { postprocessMask } from './lib/mask/postprocess.js';
 import { encoderInputSize, pixelsToEncoderTensor } from './lib/sam/preprocess.js';
+import { buildSvgDocument } from './lib/svg/document.js';
+import { sanitizeFilename } from './lib/svg/sanitize.js';
+import { fitPolygon } from './lib/vectorize/bezier.js';
+import { traceContours } from './lib/vectorize/contours.js';
+import { buildPathData } from './lib/vectorize/path.js';
+import { simplifyPolygon } from './lib/vectorize/simplify.js';
+import { createResultPanel } from './ui/result-panel.js';
 import { createStage } from './ui/stage.js';
 import { createStatusLine } from './ui/status.js';
 import { createStrokeOverlay } from './ui/stroke-overlay.js';
@@ -7,7 +17,7 @@ import { createThemeController } from './ui/theme.js';
 import { wireStageControls } from './ui/controls.js';
 
 import type { BinaryMaskResult, RunnableSession } from './lib/sam/decode.js';
-import type * as OrtNamespace from 'onnxruntime-web';
+import type * as OrtNamespace from 'onnxruntime-web/wasm';
 
 type OrtTensor = OrtNamespace.Tensor;
 
@@ -53,6 +63,47 @@ function formatConfidence(iou: number): string {
   return `${String(Math.round(iou * 100))}%`;
 }
 
+// Both are pixel-space constants, deliberately not resolution-relative (ADR-0005: the
+// simplification tolerance is "the single knob governing whether output reads as
+// clean vector or traced blob", tuned once against real MobileSAM output rather than
+// derived per-image). The hole-fill threshold only needs to be big enough to erase
+// small thresholding-noise specks inside an otherwise solid region — a real,
+// intentionally-donut-shaped selection is holed on a much larger scale than that and
+// survives untouched.
+const SIMPLIFY_TOLERANCE_PX = 1.5;
+const MAX_NOISE_HOLE_SIZE_PX = 64;
+
+/**
+ * The full mask-to-SVG pipeline (`mask-postprocess` → `vectorize` → `svg-export`, per
+ * SPEC's capability map), composed here rather than inside any one of those pure
+ * modules — each stays a small, independently-testable function over plain data, and
+ * only this orchestration knows the fixed pixel-space constants that connect them.
+ * Returns `null` for a mask with no surviving contour (e.g. the anchor point's
+ * component was fully removed by smoothing) rather than emitting an empty document.
+ */
+function buildResultSvg(
+  mask: BinaryMaskResult,
+  anchor: { x: number; y: number },
+  sourcePixels: PixelBuffer,
+): string | null {
+  const filled: BinaryMask = fillHoles(mask, MAX_NOISE_HOLE_SIZE_PX);
+  const cleaned = postprocessMask(filled, anchor);
+
+  const curves = traceContours(cleaned).map((polygon) =>
+    fitPolygon(simplifyPolygon(polygon, SIMPLIFY_TOLERANCE_PX), SIMPLIFY_TOLERANCE_PX),
+  );
+  const pathData = buildPathData(curves);
+  if (pathData === '') return null;
+
+  const fillColor = sampleAverageColor(sourcePixels, cleaned);
+  return buildSvgDocument({
+    width: cleaned.width,
+    height: cleaned.height,
+    pathData,
+    fillColor,
+  });
+}
+
 if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
   const stage = createStage(stageEl);
   const penSwatch = stagePanel.querySelector<HTMLElement>('.pen-swatch');
@@ -61,11 +112,14 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
   const modelStatusNode = modelStatusEl;
   const modelStatus = createStatusLine(modelStatusNode);
   const inferenceStatus = createStatusLine(inferenceStatusEl);
+  const resultPanelEl = document.querySelector<HTMLElement>('.result-panel');
+  const resultPanel = resultPanelEl ? createResultPanel(resultPanelEl) : null;
 
   let debugEnabled = false;
   let latestPrompt: SamPrompt | null = null;
   let sam: LoadedSam | null = null;
   let currentEmbedding: OrtTensor | null = null;
+  let uploadFilename = 'snapvector-export.svg';
 
   // Bumped whenever the loaded image changes. An in-flight encoder call captures the
   // generation it started with and checks it again on completion — if a newer image
@@ -114,9 +168,18 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
       if (myGeneration !== imageGeneration) return; // the image changed mid-decode
       stage.setMaskPreview(mask);
       inferenceStatus.set(`Segmented (confidence ${formatConfidence(mask.iou)})`);
+
+      const sourcePixels = stage.readSourcePixels();
+      const svg = sourcePixels ? buildResultSvg(mask, prompt.points[0]!, sourcePixels) : null;
+      if (svg) {
+        resultPanel?.showResult(svg, sanitizeFilename(uploadFilename));
+      } else {
+        resultPanel?.clear();
+      }
     } catch {
       if (myGeneration !== imageGeneration) return;
       inferenceStatus.set('Could not segment that loop.', 'error');
+      resultPanel?.clear();
     }
   }
 
@@ -131,9 +194,11 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
   });
 
   wireStageControls(stagePanel, stage, {
-    onImageLoaded: () => {
+    onImageLoaded: (file) => {
       imageGeneration++;
       currentEmbedding = null;
+      uploadFilename = file.name;
+      resultPanel?.clear();
       void encodeCurrentImage();
     },
     onImageCleared: () => {
@@ -142,6 +207,7 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
       strokeOverlay.clear();
       latestPrompt = null;
       inferenceStatus.clear();
+      resultPanel?.clear();
     },
   });
 
@@ -152,12 +218,14 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
     strokeOverlay.undo();
     stage.setMaskPreview(null);
     inferenceStatus.clear();
+    resultPanel?.clear();
   });
   stagePanel.querySelector('.stage-loop-clear')?.addEventListener('click', () => {
     strokeOverlay.clear();
     latestPrompt = null;
     stage.setMaskPreview(null);
     inferenceStatus.clear();
+    resultPanel?.clear();
   });
 
   debugToggle?.addEventListener('click', () => {

@@ -146,8 +146,15 @@
 
         <aside class="panel result-panel" aria-labelledby="result-heading">
           <h2 id="result-heading" class="panel__heading">Result</h2>
-          <div class="result-panel__body">
+          <div class="result-panel__body" data-state="empty">
             <p class="empty-note">Your SVG cutout will appear here once you draw a loop.</p>
+            <div class="result-preview"></div>
+          </div>
+          <div class="result-actions">
+            <button type="button" class="toolbar-button download-button" disabled>
+              Download SVG
+            </button>
+            <p class="download-hint"></p>
           </div>
         </aside>
       </div>

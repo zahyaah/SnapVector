@@ -224,13 +224,56 @@ body {
 
 .result-panel__body {
   display: grid;
-  place-items: center;
+  /* `justify-items: stretch` (the default) rather than `place-items: center` — a
+     centered grid item is sized to its own content, which leaves the preview SVG
+     nothing wider than its intrinsic size to scale against, defeating its
+     `width: 100%` below. Stretching the item gives it the full track width first. */
+  justify-items: stretch;
+  align-items: center;
   flex: 1;
   min-height: 12rem;
   padding: var(--space-md);
   border-radius: var(--radius-md);
   border: 1px dashed var(--color-border-strong);
   text-align: center;
+}
+
+.result-preview {
+  display: none;
+  width: 100%;
+}
+
+.result-preview svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 16rem;
+}
+
+.result-panel__body[data-state='ready'] .empty-note {
+  display: none;
+}
+
+.result-panel__body[data-state='ready'] .result-preview {
+  display: block;
+}
+
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin-top: var(--space-sm);
+}
+
+.download-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.download-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 
 .stage {

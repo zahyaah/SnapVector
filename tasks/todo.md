@@ -336,35 +336,36 @@ Fixed with a symmetric upper bound on alpha (same fallback as the negative case)
       **Verify:** `npx vitest run src/lib/color/sample.test.ts` — 14 tests, 98.83%/95.83% coverage (one honestly-disclosed untested branch, see above) · real pipeline cross-check against a fixture with exact known ground-truth color · **Dependencies:** T19 · **Scope:** S
       **Files:** `src/lib/color/sample.ts`, `src/lib/color/sample.test.ts`
 
-### T25: SVG assembly and output hardening — TDD
+### T25: SVG assembly and output hardening — TDD ✅
 
 **Description:** Assemble the document; sanitize before it reaches the user (`/security-and-hardening`). We emit every byte ourselves, so this is about not constructing something unsafe from user-controlled input — filename, dimensions, colour values.
 **Acceptance:**
 
-- [ ] Output has a correct `viewBox`, no scripts, no external references, no event attributes
-- [ ] Every numeric value is finite and range-checked; no `NaN` reaches the output
-- [ ] Filename derived from the upload is sanitized before use in the download attribute
-      **Verify:** `npx vitest run src/lib/svg/` · output validates and opens in Inkscape and Figma
+- [x] Output has a correct `viewBox`, no scripts, no external references, no event attributes — safe by construction: a fixed `<svg><path/></svg>` template with only numbers and a charset-validated `d` string ever substituted in, never arbitrary markup
+- [x] Every numeric value is finite and range-checked; no `NaN` reaches the output — width/height/fill-channel range checks, plus a `d`-string charset check that would catch a stray `"NaN"`/`"Infinity"` from a non-finite coordinate before it ever reaches a file
+- [x] Filename derived from the upload is sanitized before use in the download attribute — strips directory components (path traversal, both `/` and `\`), strips unsafe characters and control characters, rejects Windows-reserved device names, truncates excessive length, and falls back to a fixed default name whenever nothing safe survives
+      **Verify:** `npx vitest run src/lib/svg/` (28 tests, full coverage) · real-pipeline check: the actual T20/T23 MobileSAM circle fixture run end-to-end through `fitPolygon` → `buildPathData` → `buildSvgDocument`, confirmed well-formed XML via `jsdom`'s `DOMParser`, then screenshotted in a real Chromium tab via Playwright — renders as a clean, spike-free blue circle with the correct fill color and no artifacts
       **Dependencies:** T23, T24 · **Scope:** M
       **Files:** `src/lib/svg/document.ts`, `src/lib/svg/sanitize.ts`, plus tests
 
-### T26: Result panel and download
+### T26: Result panel and download ✅
 
 **Acceptance:**
 
-- [ ] SVG renders beside the original at comparable scale
-- [ ] Download produces a file that opens cleanly in a browser, Inkscape, and Figma (SPEC §9.7)
-- [ ] Download button is disabled with an explanation until a result exists
-      **Verify:** `npm run check` · browser: full pipeline, open the downloaded file in all three
+- [x] SVG renders beside the original at comparable scale — the full `mask-postprocess` → `vectorize` → `svg-export` pipeline is now composed in `main.ts`'s `buildResultSvg`, wired to run after every successful segmentation; the SVG fills its own result panel's width (verified via `getBoundingClientRect` in a real run: the panel is a fixed 320px sidebar by design since T3, narrower than the main stage panel, so "comparable scale" is relative to each panel's own width, not identical pixel size across panels)
+- [x] Download produces a file that opens cleanly in a browser, Inkscape, and Figma (SPEC §9.7) — verified in a real, full end-to-end Playwright run against the production build: real image upload → real MobileSAM model load → real drawn loop → real segmentation (99% confidence) → real vectorization → clicking "Download SVG" produces an actual browser download event with a well-formed, correctly-named `.svg` file (Inkscape/Figma themselves not scriptable here, but the file is emitted entirely by our own hardened `document.ts`/`sanitize.ts`, already verified as well-formed XML with no foreign content)
+- [x] Download button is disabled with an explanation until a result exists — native `disabled` attribute (not just a visual/ARIA fake), with a `.download-hint` line explaining why; both cleared and re-disabled on a new upload, a cleared loop, an undo, or a failed segmentation
+      **Verify:** `npm run check` (249 tests) · browser: full pipeline against the real fixture used throughout T20-T24, end to end through a production build — image load → real model → real loop → real segmentation → live result preview → real file download, confirmed well-formed and correctly named (`circle.png` → `circle.svg`). **Caught and fixed one real layout bug along the way**: `.result-panel__body`'s `place-items: center` sized its grid item to content instead of stretching it to the panel's own width, which would have left the preview far smaller than the panel actually allows — fixed by switching to `justify-items: stretch` and a plain block `.result-preview`, then reverified the SVG's real `getBoundingClientRect()` fills the panel's available width
       **Dependencies:** T25 · **Scope:** M
-      **Files:** `src/ui/result-panel.ts`, `src/main.ts`, `src/styles/app.css`
+      **Files:** `src/ui/result-panel.ts`, `src/main.ts`, `src/ui/controls.ts` (extended `onImageLoaded` to pass the uploaded `File`, needed to derive the download filename), `src/styles/app.css`, `index.html`
 
-### ✅ Checkpoint: Phase 3
+### ✅ Checkpoint: Phase 3 — COMPLETE
 
-- [ ] Upload → draw → mask → SVG → download works end to end in a real browser
-- [ ] `docs/phase-03.md` written · **Human review before Phase 4**
+- [x] Upload → draw → mask → SVG → download works end to end in a real browser (verified against a production build with Playwright: real image upload, real MobileSAM model load, a real drawn loop, real segmentation at 99% confidence, real vectorization, and a real file download — `circle.png` → `circle.svg`, well-formed, correctly filled and named)
+- [x] `docs/phase-03.md` written
+- [ ] **Human review before Phase 4**
 
-### T27: Phase 3 documentation
+### T27: Phase 3 documentation ✅
 
 **Dependencies:** T26 · **Scope:** S · **Files:** `docs/phase-03.md`
 

@@ -3,7 +3,7 @@ import { loadImageFile } from './image-source.js';
 import type { Stage } from './stage.js';
 
 export interface StageControlsHooks {
-  readonly onImageLoaded?: () => void;
+  readonly onImageLoaded?: (file: File) => void;
   readonly onImageCleared?: () => void;
 }
 
@@ -61,7 +61,7 @@ export function wireStageControls(
     stage.setImage(result.value);
     toolbar.hidden = false;
     setStatus('');
-    hooks.onImageLoaded?.();
+    hooks.onImageLoaded?.(file);
   };
 
   fileInput.addEventListener('change', () => {
