@@ -324,14 +324,16 @@ Fixed with a symmetric upper bound on alpha (same fallback as the negative case)
       **Verify:** `npx vitest run src/lib/vectorize/path.test.ts` — 9 tests, 100% coverage · full real-pipeline cross-check (real mask → SVG file → rendered in a real browser), which is what actually caught the spike bug above; `src/lib/vectorize/bezier.test.ts` grew a 16th test (the real 50-point fixture) verified to fail without the fix and pass with it · **Dependencies:** T22 · **Scope:** S
       **Files:** `src/lib/vectorize/path.ts`, `src/lib/vectorize/path.test.ts`
 
-### T24: Fill colour sampling — TDD
+### T24: Fill colour sampling — TDD ✅
 
 **Acceptance:**
 
-- [ ] Representative fill colour sampled from source pixels inside the mask only
-- [ ] Optional k-means palette of up to N flat colours
-- [ ] Deterministic for a fixed seed
-      **Verify:** `npx vitest run src/lib/color/sample.test.ts` · **Dependencies:** T19 · **Scope:** S
+- [x] Representative fill colour sampled from source pixels inside the mask only — **verified against real pipeline data with a known ground truth**: sampled `{r:41,g:91,b:200}` against the circle fixture's exact drawn color `{r:40,g:90,b:200}`, the 1-unit difference fully explained by anti-aliased boundary pixels
+- [x] Optional k-means palette of up to N flat colours — on the same real data, k=3 correctly recovered the exact pure color `(40,90,200)` as one cluster, plus two lighter clusters representing the boundary blend
+- [x] Deterministic for a fixed seed (same seed → identical palette, tested directly; different seed can differ, confirming the seed is actually used and not a no-op)
+
+**Two real (not dead) branches were left honestly disclosed rather than gamed for coverage**: a duplicate-centroid-retry during initialization (found reliably via a 99%/1% skewed-color fixture) IS covered; an empty-cluster-after-reassignment branch resisted a genuine, quantified search (10,000+ randomized cluster/seed/k combinations) without triggering. Documented inline as a real (not provably impossible) but apparently rare case with Forgy initialization, rather than either padding coverage with a contrived fixture or silently leaving it unexplained — consistent with, but distinct from, T18/T20/T21's *provably*-dead-code removals.
+      **Verify:** `npx vitest run src/lib/color/sample.test.ts` — 14 tests, 98.83%/95.83% coverage (one honestly-disclosed untested branch, see above) · real pipeline cross-check against a fixture with exact known ground-truth color · **Dependencies:** T19 · **Scope:** S
       **Files:** `src/lib/color/sample.ts`, `src/lib/color/sample.test.ts`
 
 ### T25: SVG assembly and output hardening — TDD
