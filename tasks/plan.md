@@ -15,7 +15,7 @@ top, verified in a real browser instead.
 
 ## Architecture Decisions
 
-All five decisions are recorded in [docs/adr/](../docs/adr/README.md). In brief:
+All decisions are recorded in [docs/adr/](../docs/adr/README.md). In brief:
 
 - **Client-side-first, zero backend** ([ADR-0001](../docs/adr/0001-client-side-first-architecture.md)) — the founding constraint. Inference in the visitor's browser makes hosting free forever and makes the privacy claim structural rather than a promise.
 - **Vanilla TS + Vite** ([ADR-0002](../docs/adr/0002-vanilla-typescript-and-vite.md)) — the UI is thin; the canvas and WASM work is imperative and sits badly inside a render cycle. `lib/` ends up framework-free and testable in Node.
@@ -88,7 +88,7 @@ with no code attached, so it fails cheaply if it fails.
 | -------------------------------------------------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | MobileSAM ONNX export's tensor names/shapes differ from what we assume                                         | **High** — invalidates T12/T14 | T11 is a research-only task that inspects the real artifact and records the actual signature before any code is written against it (`/source-driven-development`) |
 | ~~ORT Web's WASM asset paths break under a Vite production build~~ **RESOLVED at T13** | ~~High~~ | Verified against the real build+preview with Playwright: Vite's static analysis of `ort.bundle.min.mjs` correctly detected and hashed the WASM asset with no manual `wasmPaths` config needed. Zero 404s, full real-network model load succeeded |
-| Encoder blocks the main thread and freezes the UI for seconds                                                  | Medium                         | Measure at T16; move the session to a Web Worker if jank is visible. `lib/sam/` is already isolated behind an async interface so this does not ripple             |
+| **CONFIRMED at T16**: encoder blocks the main thread ~3.4s (measured via Long Task API), ~13% over budget | Medium | Investigated COOP/COEP threading and rejected it (no GitHub Pages production path; broke dev too). Decided with the user to accept for v1 rather than build a dedicated Web Worker — disproportionate scope for the overage. See ADR-0006 |
 | Model download too slow to meet the Fast 3G target                                                             | Medium                         | T16 decides quantization against measurements; int8 encoder is the lever                                                                                          |
 | Marching squares saddle-point ambiguity produces self-touching contours                                        | Medium                         | Named explicitly as a T20 fixture case, tested before it is a bug                                                                                                 |
 | Bezier fit quality is visibly poor on real masks                                                               | Medium                         | Error-bounded fit with recursive subdivision; tolerance is a tunable constant. Polyline output is the degraded fallback                                           |

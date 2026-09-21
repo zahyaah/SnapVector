@@ -1,4 +1,4 @@
-import * as ort from 'onnxruntime-web';
+import * as ort from 'onnxruntime-web/wasm';
 
 import { ok, type Result } from '../result.js';
 import { DECODER_MODEL_URL, ENCODER_MODEL_URL } from './model-urls.js';

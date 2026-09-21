@@ -1,4 +1,4 @@
-import * as ort from 'onnxruntime-web';
+import * as ort from 'onnxruntime-web/wasm';
 import { describe, expect, it } from 'vitest';
 
 import type { SamPrompt } from '../geometry/prompt.js';
