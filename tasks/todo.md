@@ -412,11 +412,19 @@ Fixed with a symmetric upper bound on alpha (same fallback as the negative case)
 
 **Note on VoiceOver:** no macOS/iOS screen reader spot-check was performed in this sandboxed environment (no interactive AT session available). Mitigated by using axe's automated ARIA/live-region/contrast rules plus a direct behavioral check of the live-region text actually changing at the right moments — a reasonable substitute, but not a full replacement for a real screen-reader pass. Flagged here rather than silently skipped.
 
-### T31: Final visual pass
+### T31: Final visual pass ✅
 
 **Description:** `/minimalist-ui` + `/design-taste-frontend` across the finished app.
-**Verify:** both themes, three widths, full pipeline · **Dependencies:** T30 · **Scope:** M
-**Files:** `src/styles/*`
+
+**Note on the two skills invoked:** both are written for marketing/landing pages and portfolios (bento grids, hero sections, editorial serif headlines); `/design-taste-frontend`'s own scope section explicitly excludes "multi-step product UI," which is what SnapVector actually is. Applying either wholesale (serif display type, hero imagery, bento layouts) would have meant discarding the restrained brand identity already established and reviewed at T2/T3/T9 for no real reason. What transferred honestly: the two skills' universal copy/UI hygiene checks (no em-dashes, no filler marketing verbs, button contrast, theme consistency, dark-mode parity) applied directly regardless of page type, so those were run for real; the layout-specific rules (hero stack discipline, bento cell counts, eyebrow rationing) were not applicable and were not force-fitted.
+
+**What was actually found and fixed:**
+
+- [x] **Em-dash audit** (`/design-taste-frontend` §9.G) — grepped every user-visible string in `index.html` and the `src/ui`/`main.ts` modules (excluding code comments, which users never see). Found 4 real instances in status text and the new T30 limitation note; rewrote each as two sentences rather than one dash-joined clause
+- [x] **Filler-word audit** — checked for "Elevate/Seamless/Unleash/Next-Gen/Revolutionize/Delve" in visible copy: none found
+- [x] **Full visual walkthrough**, both themes × three widths (360/768/1440px), with a real primed result (actual model, actual segmentation, actual SVG) rather than just the empty state — caught one genuine inconsistency: `.result-panel__body` kept its dashed "waiting for input" border even once a real result was showing, while the source-image stage's own equivalent border is scoped to its empty state only. Fixed so the result panel now matches the stage's own empty/loaded visual language exactly (dashed outline only when empty, solid sunken fill once a result exists) — confirmed via screenshots that both panels' empty states now read as a matched pair, and both loaded states do too
+      **Verify:** both themes, three widths, full pipeline · **Dependencies:** T30 · **Scope:** M
+      **Files:** `src/styles/app.css`, `index.html`, `src/main.ts`, `SPEC.md`
 
 ### T32: Code review and simplification
 

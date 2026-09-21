@@ -246,8 +246,18 @@ body {
   min-height: 12rem;
   padding: var(--space-md);
   border-radius: var(--radius-md);
-  border: 1px dashed var(--color-border-strong);
   text-align: center;
+}
+
+/* Mirrors `.stage`'s own empty/loaded treatment: a dashed outline reads as "waiting for
+   input," so it belongs on the empty state only — keeping it once a real result exists
+   made a finished SVG look like it was still a placeholder. */
+.result-panel__body[data-state='empty'] {
+  border: 1px dashed var(--color-border-strong);
+}
+
+.result-panel__body[data-state='ready'] {
+  background: var(--color-surface-sunken);
 }
 
 .result-preview {

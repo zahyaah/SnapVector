@@ -101,7 +101,7 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
 
       if (myGeneration !== imageGeneration) return; // a newer image replaced this one
       currentEmbedding = embedding;
-      inferenceStatus.set('Ready — draw a loop to segment it');
+      inferenceStatus.set('Ready. Draw a loop to segment it.');
     } catch {
       if (myGeneration !== imageGeneration) return;
       inferenceStatus.set('Could not prepare this image for segmentation.', 'error');
@@ -112,11 +112,11 @@ if (stagePanel && stageEl && modelStatusEl && inferenceStatusEl) {
     if (sam === null || currentEmbedding === null || stage.sourceSize === null) {
       if (modelLoadState === 'error') {
         inferenceStatus.set(
-          "Segmentation isn't available — retry loading the model above.",
+          "Segmentation isn't available. Retry loading the model above.",
           'error',
         );
       } else {
-        inferenceStatus.set('Still preparing — try drawing again in a moment.');
+        inferenceStatus.set('Still preparing. Try drawing again in a moment.');
       }
       return;
     }

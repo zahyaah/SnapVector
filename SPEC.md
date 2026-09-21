@@ -311,7 +311,7 @@ keyboard-accessible alternative or an explicit, labeled limitation. 15. `npm run
    resolution to "keyboard-accessible alternative," not a lesser one. A visible note
    (`.stage-limitation-note`, shown to every visitor, not just screen-reader users) now
    states this plainly before the canvas: "Drawing a selection loop needs a mouse,
-   trackpad, stylus, or touchscreen — keyboard-only interaction isn't yet supported for
+   trackpad, stylus, or touchscreen. Keyboard-only interaction isn't yet supported for
    this step." Every other control in the app remains fully keyboard reachable and
    operable — verified directly (Tab order, and operating the pen swatch and prompt-debug
    toggle via Enter alone) — and every async state change is announced via an
